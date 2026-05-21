@@ -1264,21 +1264,24 @@
 
         // Hàm gọi API mới: Gọi về server của chính bạn (/api/gemini)
 async function callGemini(prompt, systemInstruction = "") {
-    // Không cần dùng userGeminiApiKey nữa vì Key đã giấu trên Server
+    // Chỉ cần gọi về server Vercel của bạn, không cần gọi Google
     const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, systemInstruction })
+        body: JSON.stringify({ 
+            prompt: prompt, 
+            systemInstruction: systemInstruction 
+        })
     });
 
     if (!response.ok) {
-        // Nếu lỗi, hiện thông báo lỗi cụ thể
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Không thể kết nối đến máy chủ AI (Lỗi 404/500)");
+        // Nếu lỗi, hiện thông báo lỗi để bạn biết
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Lỗi máy chủ Vercel");
     }
 
     const data = await response.json();
-    return data.text || "Không có phản hồi từ AI.";
+    return data.text;
 }
 
         // Mở Modal AI hiển thị phản hồi
