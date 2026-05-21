@@ -64,6 +64,33 @@
                 <div class="bg-blue-900/50 px-4 py-1.5 rounded-lg border border-blue-500/30 text-xs flex items-center gap-3">
                     <span class="text-blue-300 font-medium"><i class="fa-regular fa-clock mr-1"></i> GIỜ HIỆN TẠI HỆ THỐNG:</span>
                     <span class="font-bold text-amber-300" id="current-time-display">21-May-26 22:44</span>
+                    <script>
+    function updateClock() {
+        // Lấy thời gian hiện tại từ hệ thống của máy người dùng
+        const now = new Date();
+        
+        // Định dạng lại theo kiểu dd-Mon-yy HH:MM
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = now.toLocaleString('en-US', { month: 'short' });
+        const year = String(now.getFullYear()).slice(-2);
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        const timeString = `${day}-${month}-${year} ${hours}:${minutes}`;
+        
+        // Cập nhật vào thẻ span có id="current-time-display"
+        const el = document.getElementById('current-time-display');
+        if (el) {
+            el.textContent = timeString;
+        }
+    }
+
+    // Chạy hàm này mỗi 1000ms (1 giây)
+    setInterval(updateClock, 1000);
+    
+    // Gọi ngay lập tức một lần để không bị trễ 1 giây đầu tiên
+    updateClock();
+</script>
                 </div>
                 <span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
