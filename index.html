@@ -1262,44 +1262,24 @@
             }
         });
 
-        // Hàm gọi API Gemini tích hợp Key của người dùng linh hoạt
-        async function callGemini(prompt, systemInstruction = "") {
-            // Ưu tiên dùng API Key do anh nhập trực tiếp trên giao diện
-            const apiKey = userGeminiApiKey || ""; 
-            
-            if (!apiKey) {
-                throw new Error("Anh chưa dán khóa API Gemini của anh ở ô thiết lập phía trên cột chat!");
-            }
+        // Hàm gọi API mới: Gọi về server của chính bạn (/api/gemini)
+async function callGemini(prompt, systemInstruction = "") {
+    // Không cần dùng userGeminiApiKey nữa vì Key đã giấu trên Server
+    const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, systemInstruction })
+    });
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }]
-            };
-            if (systemInstruction) {
-                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
-            }
+    if (!response.ok) {
+        // Nếu lỗi, hiện thông báo lỗi cụ thể
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Không thể kết nối đến máy chủ AI (Lỗi 404/500)");
+    }
 
-            let delay = 1000;
-            for (let i = 0; i < 5; i++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error(`Phản hồi lỗi mạng! Mã lỗi: ${response.status}`);
-                    const result = await response.json();
-                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Không có phản hồi từ AI.";
-                } catch (error) {
-                    if (i === 4) {
-                        throw new Error(error.message || "Không thể kết nối đến máy chủ AI.");
-                    }
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
-                }
-            }
-        }
+    const data = await response.json();
+    return data.text || "Không có phản hồi từ AI.";
+}
 
         // Mở Modal AI hiển thị phản hồi
         function openAIModal(title, content) {
