@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Plan Tracker 2026 - AI & Gantt</title>
+    <!-- Tailwind CSS để tạo giao diện hiện đại -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome cho các icon sinh động -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js để vẽ biểu đồ thống kê trực quan (Export Chart) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS để xuất dữ liệu ra file Excel chuẩn (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Hiệu ứng nhấp nháy cảnh báo Cut-off dưới 48h chưa vào sổ tàu */
+        @keyframes cutoff-alert {
+            0% { background-color: rgba(239, 68, 68, 0.25); }
+            50% { background-color: rgba(245, 158, 11, 0.2); }
+            100% { background-color: rgba(239, 68, 68, 0.25); }
+        }
+        .cutoff-warning-row {
+            animation: cutoff-alert 1.5s infinite ease-in-out;
+            font-weight: 700 !important;
+            border-left: 5px solid #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 transition-colors duration-200 min-h-screen flex flex-col">
+
+    <!-- Header ứng dụng -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white p-2 rounded-lg text-blue-700">
+                    <i class="fa-solid fa-ship text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">EXPORT PLAN TRACKER</h1>
+                    <p class="text-xs text-blue-200">Hệ Thống Theo Dõi Tiến Độ Xuất Khẩu & Trợ Lý Logistics AI v3.0 (04-2026)</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="bg-blue-900/50 px-4 py-1.5 rounded-lg border border-blue-500/30 text-xs flex items-center gap-3">
+                    <span class="text-blue-300 font-medium"><i class="fa-regular fa-clock mr-1"></i> GIỜ HIỆN TẠI HỆ THỐNG:</span>
+                    <span class="font-bold text-amber-300" id="current-time-display">21-May-26 22:44</span>
+                </div>
+                <span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    Chế độ Theo dõi cá nhân
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-4 py-6 flex-1 w-full">
+        <!-- Khu vực thông báo (Toast Message) -->
+        <div id="toast" class="hidden fixed bottom-5 right-5 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center space-x-2 z-50 transition-opacity duration-300">
+            <i class="fa-solid fa-circle-check"></i>
+            <span id="toast-message">Cập nhật dữ liệu thành công!</span>
+        </div>
+
+        <!-- Custom Dialog Modal -->
+        <div id="custom-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden transform scale-95 transition-transform duration-200">
+                <div class="p-5 text-center">
+                    <div class="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-800 mb-2" id="modal-title">Xác nhận tác vụ</h3>
+                    <p class="text-xs text-slate-500" id="modal-desc">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+                </div>
+                <div class="bg-slate-50 px-5 py-3 flex justify-end space-x-2">
+                    <button id="modal-btn-cancel" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-all">Hủy bỏ</button>
+                    <button id="modal-btn-confirm" class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-all">Đồng ý</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Output Modal -->
+        <div id="ai-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-100 overflow-hidden flex flex-col max-h-[85vh]">
+                <div class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-5 py-3.5 flex justify-between items-center">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                        <span id="ai-modal-title">Trợ Lý AI Phản Hồi</span>
+                    </h3>
+                    <button onclick="closeAIModal()" class="text-white/80 hover:text-white transition-all text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto text-xs text-slate-700 space-y-3 leading-relaxed whitespace-pre-line" id="ai-modal-content">
+                    <!-- Nội dung AI sinh ra -->
+                </div>
+                <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-100 flex justify-between items-center">
+                    <button onclick="copyAIConsult()" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+                        <i class="fa-regular fa-copy"></i> Sao chép nội dung
+                    </button>
+                    <button onclick="closeAIModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all">
+                        Đóng lại
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI dashboard hàng đầu -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                    <i class="fa-solid fa-file-invoice text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Tổng số PO đặt hàng</p>
+                    <p id="kpi-total-po" class="text-xl font-bold text-slate-800">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <i class="fa-solid fa-truck-container text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Tổng số Container (QTY)</p>
+                    <p id="kpi-total-cont" class="text-xl font-bold text-slate-800">0</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3">
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+                    <i class="fa-solid fa-clipboard-check text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">Số tờ khai đã thông quan</p>
+                    <p id="kpi-cleared" class="text-xl font-bold text-emerald-700">0</p>
+                </div>
+            </div>
+            <!-- KPI Tổng chi phí thông quan (Cập nhật nhân 30,000 VND / Container như anh yêu cầu) -->
+            <div class="bg-gradient-to-br from-emerald-600 to-teal-700 p-4 rounded-xl text-white shadow-sm flex items-center space-x-3">
+                <div class="p-3 bg-white/20 text-white rounded-lg">
+                    <i class="fa-solid fa-coins text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-emerald-100 font-medium">Tổng chi phí dự tính (30k/Cont)</p>
+                    <p id="kpi-total-cost" class="text-xl font-extrabold text-amber-300">0 ₫</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung chia cột linh hoạt: Form nhập (3) | Bảng theo dõi (6) | Chatbox AI tùy biến kích thước (3) -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            
+            <!-- CỘT 1: FORM NHẬP LIỆU (XL: COL-SPAN-3) -->
+            <div class="xl:col-span-3">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-20">
+                    <div class="bg-blue-600 text-white px-4 py-3 text-center">
+                        <h2 class="text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-file-pen"></i>FORM NHẬP DỮ LIỆU XUẤT KHẨU
+                        </h2>
+                    </div>
+
+                    <form id="export-form" class="p-4 space-y-3">
+                        <input type="hidden" id="edit-id" value="">
+
+                        <!-- PO NO. -->
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">PO NO. <span class="text-red-500">*</span></label>
+                            <input type="text" id="po-no" required placeholder="Nhập mã PO (Ví dụ: 09/TL-SW/26)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold text-slate-800">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- LOẠI HÀNG (Type) -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">LOẠI HÀNG</label>
+                                <select id="type" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold bg-white text-slate-700">
+                                    <option value="Latex HA">Latex HA</option>
+                                    <option value="Latex LA">Latex LA</option>
+                                    <option value="CV50">CV50</option>
+                                    <option value="CV60">CV60</option>
+                                    <option value="SVR 3L">SVR 3L</option>
+                                    <option value="MIX 10">MIX 10</option>
+                                    <option value="MIX 3L">MIX 3L</option>
+                                    <option value="SVR 10">SVR 10</option>
+                                    <option value="RSS3">RSS3</option>
+                                </select>
+                            </div>
+
+                            <!-- QUY CÁCH ĐÓNG GÓI -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">Q/C ĐÓNG GÓI</label>
+                                <select id="packaging" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold bg-white text-slate-700">
+                                    <option value="Bales">Bales</option>
+                                    <option value="SW Pallet Gỗ">SW Pallet Gỗ</option>
+                                    <option value="SW Pallet Nhựa">SW Pallet Nhựa</option>
+                                    <option value="Drum">Drum</option>
+                                    <option value="Flexibag">Flexibag</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- QTY CONT -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">QTY CONT</label>
+                                <input type="number" id="qty-cont" min="1" value="1" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold">
+                            </div>
+
+                            <!-- BOOKING NO. -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">BOOKING NO. <span class="text-red-500">*</span></label>
+                                <input type="text" id="booking-no" required placeholder="Hãng tàu cấp" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- VESSEL/VOY -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">VESSEL/VOY</label>
+                                <input type="text" id="vessel-voy" placeholder="Tàu/Chuyến" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold">
+                            </div>
+
+                            <!-- DROP-OFF -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">DROP-OFF</label>
+                                <input type="text" id="drop-off" placeholder="Nơi hạ bãi" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <!-- Date Stuffing -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[9px] tracking-wider mb-1">Stuffing Date</label>
+                                <input type="date" id="date-stuffing" class="w-full px-1.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-[11px] font-semibold text-slate-700">
+                            </div>
+
+                            <!-- ETD -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[9px] tracking-wider mb-1">ETD</label>
+                                <input type="date" id="etd" class="w-full px-1.5 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-[11px] font-semibold text-slate-700">
+                            </div>
+
+                            <!-- CUT-OFF -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[9px] tracking-wider mb-1">CUT-OFF</label>
+                                <input type="datetime-local" id="cut-off" class="w-full px-1 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-[10px] font-semibold text-slate-700">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <!-- SỐ TỜ KHAI -->
+                            <div class="col-span-2">
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">SỐ TỜ KHAI</label>
+                                <input type="text" id="so-to-khai" placeholder="Ví dụ: 300412356" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold text-slate-800">
+                            </div>
+
+                            <!-- PHÂN LUỒNG TỜ KHAI -->
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">PHÂN LUỒNG</label>
+                                <select id="phan-luong" class="w-full px-1 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-bold bg-white text-slate-700">
+                                    <option value="1">Luồng Xanh</option>
+                                    <option value="2">Luồng Vàng</option>
+                                    <option value="3">Luồng Đỏ</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- TKHQ / TRẠNG THÁI TỜ KHAI -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">TRẠNG THÁI TK</label>
+                                <select id="tkhq" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold text-slate-700 bg-white">
+                                    <option value="Chưa thông quan">Chưa thông quan 🔴</option>
+                                    <option value="Đang làm thủ tục">Đang làm thủ tục 🟡</option>
+                                    <option value="Đã thông quan">Đã thông quan 🟢</option>
+                                    <option value="Đã kiểm hóa">Đã kiểm hóa 🔵</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">NOTE / GHI CHÚ</label>
+                                <input type="text" id="ghi-chu" placeholder="Nhập note nếu có" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold text-slate-800">
+                            </div>
+                        </div>
+
+                        <!-- Các nút tương tác lớn và trực quan -->
+                        <div class="pt-3 flex flex-col space-y-2">
+                            <button type="submit" id="btn-submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center space-x-1.5 text-xs tracking-wider uppercase">
+                                <i class="fa-solid fa-arrow-right-long text-xs animate-pulse"></i>
+                                <span id="submit-text">CẬP NHẬT DỮ LIỆU LÔ HÀNG</span>
+                            </button>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="exportToExcel()" class="bg-orange-400 hover:bg-orange-500 text-white font-bold py-2 px-3 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5 text-[11px] uppercase">
+                                    <i class="fa-solid fa-file-excel"></i>
+                                    <span>Export Plan</span>
+                                </button>
+
+                                <button type="button" onclick="scrollToChart()" class="bg-orange-400 hover:bg-orange-500 text-white font-bold py-2 px-3 rounded-lg shadow-sm transition-all flex items-center justify-center space-x-1.5 text-[11px] uppercase">
+                                    <i class="fa-solid fa-chart-pie"></i>
+                                    <span>Export Chart</span>
+                                </button>
+                            </div>
+
+                            <button type="button" id="btn-cancel" onclick="resetForm()" class="hidden w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-1.5 px-3 rounded-lg transition-all text-xs">
+                                Hủy sửa (Về chế độ thêm mới)
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CỘT 2: DANH SÁCH & BẢNG KẾ HOẠCH CHI TIẾT (XL: COL-SPAN-6) -->
+            <div id="main-content-column" class="xl:col-span-6 space-y-4">
+                
+                <!-- Tìm kiếm và Bộ lọc nhanh -->
+                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 text-xs">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="search-input" onkeyup="filterData()" placeholder="Tìm kiếm nhanh PO, Booking, Số tờ khai..." class="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex space-x-2">
+                        <select id="filter-type" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ALL">Tất cả LOẠI</option>
+                            <option value="Latex HA">Latex HA</option>
+                            <option value="Latex LA">Latex LA</option>
+                            <option value="CV50">CV50</option>
+                            <option value="CV60">CV60</option>
+                            <option value="SVR 3L">SVR 3L</option>
+                            <option value="MIX 10">MIX 10</option>
+                            <option value="MIX 3L">MIX 3L</option>
+                            <option value="SVR 10">SVR 10</option>
+                            <option value="RSS3">RSS3</option>
+                        </select>
+                        <select id="filter-tkhq" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ALL">Tất cả tờ khai</option>
+                            <option value="Chưa thông quan">Chưa thông quan</option>
+                            <option value="Đang làm thủ tục">Đang làm thủ tục</option>
+                            <option value="Đã thông quan">Đã thông quan</option>
+                            <option value="Đã kiểm hóa">Đã kiểm hóa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Bảng Kế Hoạch Chi Tiết -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-4 py-3 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-table-list text-blue-600"></i>KẾ HOẠCH CHI TIẾT THEO DÕI XUẤT HÀNG
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold animate-pulse">⏰ Chớp đỏ: < 48h Cut-off</span>
+                            <span id="record-count" class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">0 lô hàng</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-[550px]">
+                        <table class="w-full text-left border-collapse" id="export-plan-main-table">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 text-[10px] font-extrabold uppercase border-b border-slate-200 sticky top-0 bg-slate-50 z-10">
+                                    <th class="py-3 px-3">STT</th>
+                                    <th class="py-3 px-3">PO NO / LOẠI / Q/C</th>
+                                    <th class="py-3 px-3">BOOKING / TÀU</th>
+                                    <th class="py-3 px-2 text-center">CONT</th>
+                                    <th class="py-3 px-3">HẠ BÃI / STUFFING / ETD</th>
+                                    <th class="py-3 px-3">CUT-OFF</th>
+                                    <th class="py-3 px-2 text-center">TỜ KHAI / LUỒNG</th>
+                                    <th class="py-3 px-3 text-center">TRẠNG THÁI TK</th>
+                                    <th class="py-3 px-2 text-center">VÀO SỔ TÀU</th>
+                                    <th class="py-3 px-3">GHI CHÚ</th>
+                                    <th class="py-3 px-3 text-center">HÀNH ĐỘNG / AI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100 text-[11px] font-medium">
+                                <!-- Trình duyệt tự động đổ dữ liệu qua JavaScript -->
+                            </tbody>
+                        </table>
+                        <div id="no-data" class="hidden py-16 text-center text-slate-400">
+                            <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
+                            <p class="text-sm">Chưa có dữ liệu nào được lưu trữ. Hãy điền form bên trái!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT 3: TRỢ LÝ LOGISTICS AI TÙY CHỈNH KÍCH THƯỚC (XL: COL-SPAN-3) -->
+            <div id="ai-chat-column" class="xl:col-span-3 transition-all duration-300">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-20 flex flex-col h-[650px] relative">
+                    
+                    <!-- Handle co giãn bề rộng nằm bên trái cột chat -->
+                    <div id="resize-handle" class="absolute top-0 left-0 bottom-0 w-2.5 cursor-ew-resize bg-slate-100 hover:bg-indigo-300 transition-colors flex items-center justify-center border-r border-slate-200/60 z-20" title="Kéo để thay đổi kích thước">
+                        <div class="w-1 h-8 bg-slate-400 rounded"></div>
+                    </div>
+
+                    <!-- Tiêu đề Chatbox -->
+                    <div class="bg-gradient-to-r from-indigo-700 to-blue-700 text-white px-4 py-3 pl-6 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-robot text-lg text-amber-300"></i>
+                            <div>
+                                <h3 class="font-bold text-xs uppercase tracking-wide">TRỢ LÝ LOGISTICS AI</h3>
+                                <p class="text-[9px] text-indigo-200">Gemini 2.5 Flash • Cấu hình khóa riêng</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="clearAIChat()" class="text-indigo-200 hover:text-white transition-all text-xs" title="Xóa lịch sử">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ô thiết lập API Key Gemini cá nhân -->
+                    <div class="bg-indigo-50/50 p-2.5 border-b border-slate-200 pl-6 flex flex-col space-y-1">
+                        <label class="text-[9px] font-bold text-indigo-800 uppercase tracking-wide flex justify-between">
+                            <span>Khóa API Gemini của bạn:</span>
+                            <span class="text-slate-500 font-normal normal-case italic">(Lưu cục bộ thiết bị của bạn)</span>
+                        </label>
+                        <div class="flex gap-1.5">
+                            <input type="password" id="user-api-key" placeholder="Dán API Key (AIzaSy...) để kích hoạt" class="flex-1 px-2 py-1 border border-indigo-200 rounded text-[10px] focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-mono">
+                            <button onclick="saveUserApiKey()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-[10px] font-bold transition-all">Lưu</button>
+                        </div>
+                    </div>
+
+                    <!-- Khung tin nhắn chat -->
+                    <div id="chat-messages" class="flex-1 p-4 pl-6 overflow-y-auto space-y-3 bg-slate-50 text-xs">
+                        <div class="flex items-start space-x-2">
+                            <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-[10px]">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-r-xl rounded-bl-xl border border-slate-100 shadow-sm max-w-[85%] text-slate-700">
+                                Xin chào anh! Tôi là Trợ lý AI chuyên nghiệp về xuất nhập khẩu hàng hóa. 
+                                <p class="mt-1 font-semibold text-indigo-700 text-[10px]">💡 Hãy dán API Key của anh ở phía trên để kích hoạt đầy đủ sức mạnh của Gemini nhé!</p>
+                                <div class="mt-2.5 flex flex-col gap-1.5">
+                                    <button onclick="sendQuickPrompt('Tóm tắt phân tích rủi ro cho toàn bộ kế hoạch hiện tại.')" class="text-left bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-semibold border border-indigo-100 transition-all flex items-center justify-between">
+                                        <span>👉 Phân tích rủi ro kế hoạch</span>
+                                        <i class="fa-solid fa-chevron-right text-[8px]"></i>
+                                    </button>
+                                    <button onclick="sendQuickPrompt('Những mốc thời gian Cut-off nào cần đặc biệt lưu ý gấp trong kế hoạch?')" class="text-left bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-semibold border border-indigo-100 transition-all flex items-center justify-between">
+                                        <span>👉 Xem mốc Cut-off quan trọng</span>
+                                        <i class="fa-solid fa-chevron-right text-[8px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khung nhập liệu Chat -->
+                    <div class="p-3 border-t border-slate-200 bg-white pl-6">
+                        <div class="flex space-x-1.5">
+                            <input type="text" id="chat-input" onkeypress="handleChatKeyPress(event)" placeholder="Hỏi AI về thủ tục, hải quan, cảng..." class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button onclick="sendChatMessage()" id="btn-chat-send" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PHẦN THỐNG KÊ BIỂU ĐỒ & SƠ ĐỒ GANTT (EXPORT CHART) -->
+        <section id="chart-section" class="mt-8 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-8">
+            <h3 class="font-bold text-slate-700 text-sm mb-4 flex items-center justify-between border-b pb-3 border-slate-100">
+                <span><i class="fa-solid fa-chart-line mr-1.5 text-indigo-600"></i>THỐNG KÊ CHI TIẾT LÔ HÀNG (EXPORT CHART)</span>
+                <span class="text-xs font-normal text-slate-500">Phân tích lượng container & Tiến độ kế hoạch</span>
+            </h3>
+
+            <!-- 1. BẢNG SƠ ĐỒ TIẾN ĐỘ GANTT CHART (QUAN TRỌNG) -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-square-poll-horizontal text-indigo-600"></i>Sơ đồ Gantt Tiến độ Đóng hàng & tàu chạy (Tháng 04-05-06/2026)
+                </h4>
+                <div class="overflow-x-auto">
+                    <div class="min-w-[1000px] bg-white rounded-lg border border-slate-100 overflow-hidden text-[10px]">
+                        <!-- Thanh tiêu đề mốc thời gian Gantt -->
+                        <div class="grid grid-cols-12 bg-slate-100 border-b border-slate-200 font-bold py-2 px-3 text-slate-600">
+                            <div class="col-span-3 border-r border-slate-200 pr-2">Thông tin PO / Booking</div>
+                            <div class="col-span-1 text-center border-r border-slate-200">Đóng Hàng</div>
+                            <div class="col-span-1 text-center border-r border-slate-200">Tàu Chạy (ETD)</div>
+                            <div class="col-span-7 px-2">Phân bố tiến độ theo ngày (Timeline)</div>
+                        </div>
+                        <div id="gantt-rows-container" class="divide-y divide-slate-100">
+                            <!-- Các dòng Gantt tự động phát sinh qua JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. CÁC BIỂU ĐỒ TRỰC QUAN -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Biểu đồ cột -->
+                <div class="h-[280px] flex flex-col justify-between">
+                    <h4 class="text-xs font-semibold text-slate-600 mb-2 text-center">Sản lượng Container (QTY CONT) theo ngày đóng hàng</h4>
+                    <div class="relative flex-1 w-full h-full">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+                <!-- Biểu đồ tròn -->
+                <div class="h-[280px] flex flex-col justify-between">
+                    <h4 class="text-xs font-semibold text-slate-600 mb-2 text-center">Tỷ trọng phân loại sản phẩm (TYPE)</h4>
+                    <div class="relative flex-1 w-full h-full flex justify-center">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-400 py-6 border-t border-slate-700 text-center text-xs mt-10">
+        <div class="max-w-[1600px] mx-auto px-4">
+            <p class="font-semibold text-slate-300">© 2026 EXPORT PLAN TRACKER SYSTEM - Đã tích hợp Trí tuệ Nhân tạo Gemini</p>
+            <p class="mt-1 text-slate-500 text-[11px]">Hệ thống thông tin quản lý nội bộ phục vụ kiểm soát & tối ưu hóa quy trình hàng xuất khẩu.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Thời điểm hiện tại giả định theo hệ thống của anh: 21-May-2026 22:44
+        const systemCurrentTime = new Date("2026-05-21T22:44:00");
+
+        // Khởi tạo/Lấy dữ liệu từ Local Storage
+        let dbData = JSON.parse(localStorage.getItem('export_plan_data')) || [];
+
+        // Lưu trữ khóa API người dùng nhập vào
+        let userGeminiApiKey = localStorage.getItem('user_gemini_api_key') || "";
+        document.getElementById('user-api-key').value = userGeminiApiKey;
+
+        // Khai báo các đối tượng biểu đồ toàn cục
+        let barChartInstance = null;
+        let pieChartInstance = null;
+
+        // Định vị các phần tử giao diện
+        const form = document.getElementById('export-form');
+        const tableBody = document.getElementById('table-body');
+        const noDataDiv = document.getElementById('no-data');
+        const editIdInput = document.getElementById('edit-id');
+        const submitText = document.getElementById('submit-text');
+        const btnCancel = document.getElementById('btn-cancel');
+
+        // Hàm lưu API Key riêng của người dùng
+        function saveUserApiKey() {
+            const key = document.getElementById('user-api-key').value.trim();
+            userGeminiApiKey = key;
+            localStorage.setItem('user_gemini_api_key', key);
+            showToast("Đã lưu khóa API Gemini thành công!", "success");
+            
+            // Thông báo trên khung chat
+            appendMessage('ai', `Đã nhận khóa API cá nhân của anh: \`${key.substring(0,6)}...${key.slice(-4)}\`. Hệ thống sẵn sàng trả lời trực tiếp không giới hạn!`, true);
+        }
+
+        // Hàm định dạng ngày hiển thị dd/mm/yyyy
+        function formatDate(dateStr) {
+            if (!dateStr) return "-";
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        // Hàm định dạng ngày giờ dd/mm/yyyy HH:MM
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return "-";
+            const dt = new Date(dateTimeStr);
+            if (isNaN(dt.getTime())) return dateTimeStr;
+            const d = String(dt.getDate()).padStart(2, '0');
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const y = dt.getFullYear();
+            const h = String(dt.getHours()).padStart(2, '0');
+            const mi = String(dt.getMinutes()).padStart(2, '0');
+            return `${d}/${m}/${y} ${h}:${mi}`;
+        }
+
+        // Hàm hiện thông báo toast khi hoàn thành tác vụ
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.innerText = message;
+            if (type === 'success') {
+                toast.classList.remove('bg-red-600');
+                toast.classList.add('bg-emerald-600');
+            } else {
+                toast.classList.remove('bg-emerald-600');
+                toast.classList.add('bg-red-600');
+            }
+            toast.classList.remove('hidden');
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // Custom Confirm modal (tránh việc sử dụng alert/confirm mặc định của trình duyệt)
+        function showConfirmModal(title, description, onConfirm) {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalDesc = document.getElementById('modal-desc');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+            const btnCancel = document.getElementById('modal-btn-cancel');
+
+            modalTitle.innerText = title;
+            modalDesc.innerText = description;
+            
+            modal.classList.remove('hidden');
+            
+            // Xóa tất cả sự kiện cũ trên nút bằng cách clone
+            const newBtnConfirm = btnConfirm.cloneNode(true);
+            btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
+
+            newBtnConfirm.addEventListener('click', () => {
+                onConfirm();
+                modal.classList.add('hidden');
+            });
+
+            btnCancel.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        // Thay đổi trực tiếp trạng thái "Vào Sổ Tàu" ngay trên bảng dữ liệu
+        function toggleEnteredVessel(id, isChecked) {
+            const index = dbData.findIndex(item => item.id === id);
+            if (index !== -1) {
+                dbData[index].enteredVessel = isChecked;
+                saveData();
+                showToast(isChecked ? "Đã tích xác nhận Vào Sổ Tàu" : "Đã hủy xác nhận Vào Sổ Tàu");
+            }
+        }
+
+        // Đổ dữ liệu ra bảng và cập nhật các chỉ số KPIs
+        function renderData(dataToRender = dbData) {
+            tableBody.innerHTML = '';
+            
+            if (dataToRender.length === 0) {
+                noDataDiv.classList.remove('hidden');
+            } else {
+                noDataDiv.classList.add('hidden');
+            }
+
+            dataToRender.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                
+                // Mặc định style dòng
+                let rowClass = "hover:bg-slate-50 transition-colors border-b border-slate-100 text-slate-700";
+                
+                // Tính toán cảnh báo nhấp nháy đỏ-vàng liên tục nếu giờ Cut-off đang đến gần trong 48 tiếng và CHƯA Vào sổ tàu
+                let isCutoffWarning = false;
+                if (item.cutOff && !item.enteredVessel) {
+                    const cutoffTime = new Date(item.cutOff);
+                    const diffMs = cutoffTime - systemCurrentTime;
+                    const diffHours = diffMs / (1000 * 60 * 60);
+                    // Cảnh báo nếu nhỏ hơn hoặc bằng 48 giờ
+                    if (diffHours >= 0 && diffHours <= 48) {
+                        isCutoffWarning = true;
+                    }
+                }
+
+                if (isCutoffWarning) {
+                    rowClass += " cutoff-warning-row";
+                }
+
+                tr.className = rowClass;
+
+                // Màu sắc của Trạng thái tờ khai
+                let tkhqColor = "bg-slate-100 text-slate-600";
+                if (item.tkhq === "Chưa thông quan") tkhqColor = "bg-rose-50 text-rose-700 border border-rose-200";
+                if (item.tkhq === "Đang làm thủ tục") tkhqColor = "bg-amber-50 text-amber-700 border border-amber-200";
+                if (item.tkhq === "Đã thông quan") tkhqColor = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                if (item.tkhq === "Đã kiểm hóa") tkhqColor = "bg-sky-50 text-sky-700 border border-sky-200";
+
+                // Phân luồng Tờ Khai hiển thị Xanh/Vàng/Đỏ
+                let phanLuongBadge = "-";
+                if (item.phanLuong === "1") phanLuongBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-300">Luồng Xanh</span>';
+                if (item.phanLuong === "2") phanLuongBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Luồng Vàng</span>';
+                if (item.phanLuong === "3") phanLuongBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">Luồng Đỏ</span>';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-bold text-slate-400 text-center">${index + 1}</td>
+                    <td class="py-3 px-3">
+                        <div class="font-extrabold text-slate-900">${item.poNo}</div>
+                        <div class="mt-1 flex gap-1 items-center flex-wrap">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200">${item.type}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-700 bg-slate-100 border border-slate-200">${item.packaging || 'Bales'}</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-3">
+                        <div class="font-bold text-slate-800"><i class="fa-solid fa-receipt mr-1 text-slate-400"></i>${item.bookingNo}</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5 font-semibold">${item.vesselVoy || 'Chưa có'}</div>
+                    </td>
+                    <td class="py-3 px-2 text-center">
+                        <span class="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-md font-extrabold text-xs">${item.qtyCont}</span>
+                    </td>
+                    <td class="py-3 px-3 space-y-1">
+                        <div class="text-[10px] text-slate-600 truncate max-w-[130px]"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i>${item.dropOff || 'Chưa hạ bãi'}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Stuffing: <span class="text-slate-800 font-semibold">${formatDate(item.dateStuffing)}</span></div>
+                        <div class="text-[10px] text-indigo-700 font-bold">ETD: <span class="text-blue-800">${formatDate(item.etd)}</span></div>
+                    </td>
+                    <td class="py-3 px-3">
+                        <span class="${isCutoffWarning ? 'text-red-600 font-extrabold' : 'text-slate-700 font-semibold'} text-[10px] block">
+                            ${item.cutOff ? `<i class="fa-regular fa-clock mr-1"></i>` + formatDateTime(item.cutOff) : '-'}
+                        </span>
+                        ${isCutoffWarning ? '<span class="text-[9px] text-red-600 font-extrabold animate-pulse block mt-0.5">⚠️ SẮP ĐẾN GIỜ CUT-OFF!</span>' : ''}
+                    </td>
+                    <td class="py-3 px-2 text-center space-y-1">
+                        <div class="font-bold text-slate-800 text-[11px]">${item.soToKhai || '-'}</div>
+                        <div>${phanLuongBadge}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <span class="px-2 py-1 rounded-full text-[9px] font-extrabold ${tkhqColor}">
+                            ${item.tkhq}
+                        </span>
+                    </td>
+                    <td class="py-3 px-2 text-center">
+                        <input type="checkbox" onchange="toggleEnteredVessel('${item.id}', this.checked)" ${item.enteredVessel ? 'checked' : ''} class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
+                    </td>
+                    <td class="py-3 px-3 text-slate-500 italic text-[10px] max-w-[100px] truncate" title="${item.ghiChu || ''}">
+                        ${item.ghiChu || '-'}
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <div class="flex items-center justify-center space-x-1.5">
+                            <!-- Nút AI phân tích rủi ro -->
+                            <button onclick="analyzeRiskWithAI('${item.id}')" title="✨ AI phân tích rủi ro lô hàng" class="p-1 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-all">
+                                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                            </button>
+                            <!-- Nút AI soạn Email -->
+                            <button onclick="generateEmailWithAI('${item.id}')" title="✨ AI soạn Email" class="p-1 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-all">
+                                <i class="fa-regular fa-envelope text-xs"></i>
+                            </button>
+                            <!-- Nút sửa -->
+                            <button onclick="editRecord('${item.id}')" title="Sửa thông tin" class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-all">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            <!-- Nút xóa -->
+                            <button onclick="deleteRecord('${item.id}')" title="Xóa" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-all">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Cập nhật số liệu KPI thống kê nhanh
+            document.getElementById('kpi-total-po').innerText = dataToRender.length;
+            const totalCont = dataToRender.reduce((sum, item) => sum + parseInt(item.qtyCont || 0), 0);
+            document.getElementById('kpi-total-cont').innerText = totalCont;
+            const clearedCount = dataToRender.filter(item => item.tkhq === "Đã thông quan").length;
+            document.getElementById('kpi-cleared').innerText = clearedCount;
+
+            // TÍNH TOÁN TỔNG CHI PHÍ THÔNG QUAN = TỔNG CONT * 30.000 VNĐ
+            const totalCostValue = totalCont * 30000;
+            document.getElementById('kpi-total-cost').innerText = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalCostValue);
+
+            document.getElementById('record-count').innerText = `${dataToRender.length} lô hàng`;
+
+            // Làm mới các biểu đồ dựa theo số liệu mới & Vẽ Gantt Chart
+            updateCharts();
+            renderGanttChart(dataToRender);
+        }
+
+        // Vẽ Sơ đồ Gantt chi tiết thời gian đóng hàng và tàu chạy
+        function renderGanttChart(dataToRender) {
+            const ganttContainer = document.getElementById('gantt-rows-container');
+            ganttContainer.innerHTML = '';
+
+            if (dataToRender.length === 0) {
+                ganttContainer.innerHTML = `<div class="p-4 text-center text-slate-400">Không có dữ liệu lập sơ đồ Gantt</div>`;
+                return;
+            }
+
+            // Mốc ngày mẫu trải rộng từ 18-May-2026 đến 30-May-2026 (Trong khoảng dữ liệu)
+            const startDate = new Date("2026-05-15");
+            const endDate = new Date("2026-05-30");
+            const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+            dataToRender.forEach(item => {
+                if (!item.dateStuffing || !item.etd) return;
+
+                const rowDiv = document.createElement('div');
+                rowDiv.className = "grid grid-cols-12 py-2 px-3 items-center hover:bg-slate-50/80 transition-all";
+
+                const dateStuff = new Date(item.dateStuffing);
+                const dateEtd = new Date(item.etd);
+
+                // Tính toán vị trí phần trăm trên thanh Timeline Gantt
+                let leftPercent = 0;
+                let widthPercent = 0;
+
+                const startOffset = (dateStuff - startDate) / (1000 * 60 * 60 * 24);
+                const duration = (dateEtd - dateStuff) / (1000 * 60 * 60 * 24);
+
+                if (startOffset >= 0) {
+                    leftPercent = (startOffset / totalDays) * 100;
+                }
+                widthPercent = (Math.max(1, duration) / totalDays) * 100;
+
+                // Giới hạn để thanh không nhảy tràn bờ
+                leftPercent = Math.min(95, Math.max(0, leftPercent));
+                widthPercent = Math.min(100 - leftPercent, widthPercent);
+
+                rowDiv.innerHTML = `
+                    <div class="col-span-3 border-r border-slate-200 pr-2">
+                        <div class="font-bold text-slate-800">${item.poNo}</div>
+                        <div class="text-[9px] text-slate-400">Booking: ${item.bookingNo} (${item.type})</div>
+                    </div>
+                    <div class="col-span-1 text-center border-r border-slate-200 text-slate-600 font-semibold">${formatDate(item.dateStuffing)}</div>
+                    <div class="col-span-1 text-center border-r border-slate-200 text-blue-700 font-bold">${formatDate(item.etd)}</div>
+                    <div class="col-span-7 px-2 relative py-3 bg-slate-50/50 rounded">
+                        <!-- Đường lưới đứng tượng trưng ngày hôm nay 21-May -->
+                        <div class="absolute top-0 bottom-0 w-0.5 bg-green-500/70 z-10" style="left: ${((new Date("2026-05-21") - startDate) / (1000 * 60 * 60 * 24) / totalDays) * 100}%" title="Hôm nay 21-May">
+                            <span class="absolute -top-3 left-1 bg-green-600 text-white rounded px-1 text-[7px]">21-May</span>
+                        </div>
+                        
+                        <!-- Thanh Gantt chính nối từ Stuffing đến ETD -->
+                        <div class="h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-inner relative flex items-center justify-center text-[8px] text-white font-bold" 
+                             style="margin-left: ${leftPercent}%; width: ${widthPercent}%; min-width: 25px;"
+                             title="Từ Stuffing (${formatDate(item.dateStuffing)}) đến ETD (${formatDate(item.etd)})">
+                             ${Math.round(duration) > 1 ? Math.round(duration) + ' ngày' : ''}
+                        </div>
+                    </div>
+                `;
+                ganttContainer.appendChild(rowDiv);
+            });
+        }
+
+        // Lưu dữ liệu vào Local Storage và vẽ lại bảng
+        function saveData() {
+            localStorage.setItem('export_plan_data', JSON.stringify(dbData));
+            renderData();
+        }
+
+        // Gửi Form (Thêm mới hoặc Cập nhật)
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const poNo = document.getElementById('po-no').value.trim();
+            const type = document.getElementById('type').value;
+            const packaging = document.getElementById('packaging').value;
+            const qtyCont = parseInt(document.getElementById('qty-cont').value) || 1;
+            const bookingNo = document.getElementById('booking-no').value.trim();
+            const vesselVoy = document.getElementById('vessel-voy').value.trim();
+            const dropOff = document.getElementById('drop-off').value.trim();
+            const dateStuffing = document.getElementById('date-stuffing').value;
+            const etd = document.getElementById('etd').value;
+            const cutOff = document.getElementById('cut-off').value;
+            const soToKhai = document.getElementById('so-to-khai').value.trim();
+            const phanLuong = document.getElementById('phan-luong').value;
+            const tkhq = document.getElementById('tkhq').value;
+            const ghiChu = document.getElementById('ghi-chu').value.trim();
+
+            const editId = editIdInput.value;
+
+            if (editId) {
+                // Chế độ CẬP NHẬT thông tin
+                const index = dbData.findIndex(item => item.id === editId);
+                if (index !== -1) {
+                    dbData[index] = {
+                        ...dbData[index],
+                        poNo, type, packaging, qtyCont, bookingNo, vesselVoy, dropOff, dateStuffing, etd, cutOff, soToKhai, phanLuong, tkhq, ghiChu
+                    };
+                    showToast("Cập nhật thông tin lô hàng thành công!");
+                }
+            } else {
+                // Chế độ THÊM MỚI hoàn toàn
+                const newRecord = {
+                    id: 'ID-' + Date.now(),
+                    poNo, type, packaging, qtyCont, bookingNo, vesselVoy, dropOff, dateStuffing, etd, cutOff, soToKhai, phanLuong, tkhq, ghiChu,
+                    enteredVessel: false, // Mặc định chưa vào sổ tàu
+                    createdAt: new Date().toISOString()
+                };
+                dbData.unshift(newRecord); // Đưa lên đầu danh sách
+                showToast("Đã lưu mới lô hàng thành công!");
+            }
+
+            saveData();
+            resetForm();
+        });
+
+        // Đưa dữ liệu một lô hàng cụ thể lên form để sửa đổi
+        function editRecord(id) {
+            const record = dbData.find(item => item.id === id);
+            if (!record) return;
+
+            editIdInput.value = record.id;
+            document.getElementById('po-no').value = record.poNo;
+            document.getElementById('type').value = record.type;
+            document.getElementById('packaging').value = record.packaging || 'Bales';
+            document.getElementById('qty-cont').value = record.qtyCont;
+            document.getElementById('booking-no').value = record.bookingNo;
+            document.getElementById('vessel-voy').value = record.vesselVoy || '';
+            document.getElementById('drop-off').value = record.dropOff || '';
+            document.getElementById('date-stuffing').value = record.dateStuffing || '';
+            document.getElementById('etd').value = record.etd || '';
+            document.getElementById('cut-off').value = record.cutOff || '';
+            document.getElementById('so-to-khai').value = record.soToKhai || '';
+            document.getElementById('phan-luong').value = record.phanLuong || '1';
+            document.getElementById('tkhq').value = record.tkhq;
+            document.getElementById('ghi-chu').value = record.ghiChu || '';
+
+            // Thay đổi giao diện nút bấm
+            submitText.innerText = "LƯU SỰ THAY ĐỔI LÔ HÀNG";
+            btnCancel.classList.remove('hidden');
+
+            // Cuộn mượt mà lên vị trí Form nhập liệu
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Hàm xóa dữ liệu lô hàng
+        function deleteRecord(id) {
+            showConfirmModal(
+                "Xác nhận xóa lô hàng", 
+                "Anh có chắc chắn muốn xóa vĩnh viễn thông tin lô hàng này không? Hành động này không thể hoàn tác.", 
+                () => {
+                    dbData = dbData.filter(item => item.id !== id);
+                    saveData();
+                    showToast("Đã xóa lô hàng thành công!", "error");
+                }
+            );
+        }
+
+        // Đưa form về trạng thái trống ban đầu
+        function resetForm() {
+            form.reset();
+            editIdInput.value = '';
+            submitText.innerText = "CẬP NHẬT DỮ LIỆU LÔ HÀNG";
+            btnCancel.classList.add('hidden');
+        }
+
+        // Lọc tìm kiếm dữ liệu theo ký tự gõ
+        function filterData() {
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+            const filterType = document.getElementById('filter-type').value;
+            const filterTkhq = document.getElementById('filter-tkhq').value;
+
+            const filtered = dbData.filter(item => {
+                const matchesSearch = item.poNo.toLowerCase().includes(searchVal) ||
+                                     item.bookingNo.toLowerCase().includes(searchVal) ||
+                                     (item.soToKhai && item.soToKhai.toLowerCase().includes(searchVal)) ||
+                                     (item.vesselVoy && item.vesselVoy.toLowerCase().includes(searchVal)) ||
+                                     (item.dropOff && item.dropOff.toLowerCase().includes(searchVal));
+                
+                const matchesType = filterType === 'ALL' || item.type === filterType;
+                const matchesTkhq = filterTkhq === 'ALL' || item.tkhq === filterTkhq;
+
+                return matchesSearch && matchesType && matchesTkhq;
+            });
+
+            renderData(filtered);
+        }
+
+        // Cuộn mượt xuống phần biểu đồ thống kê
+        function scrollToChart() {
+            const el = document.getElementById('chart-section');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Vẽ và cập nhật Biểu đồ trực quan (Chart.js)
+        function updateCharts() {
+            // 1. DỮ LIỆU BIỂU ĐỒ TRÒN (TỶ TRỌNG SẢN PHẨM TYPE)
+            const typeCounts = {};
+            dbData.forEach(item => {
+                typeCounts[item.type] = (typeCounts[item.type] || 0) + parseInt(item.qtyCont || 0);
+            });
+
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+            
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(typeCounts),
+                    datasets: [{
+                        data: Object.values(typeCounts),
+                        backgroundColor: ['#2563eb', '#f59e0b', '#8b5cf6', '#10b981', '#3b82f6', '#ec4899', '#f43f5e', '#6366f1'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 } } }
+                    }
+                }
+            });
+
+            // 2. DỮ LIỆU BIỂU ĐỒ CỘT (SỐ LƯỢNG CONT THEO NGÀY ĐÓNG HÀNG)
+            const contByDate = {};
+            const sortedData = [...dbData].sort((a, b) => new Date(a.dateStuffing) - new Date(b.dateStuffing));
+            sortedData.forEach(item => {
+                if (item.dateStuffing) {
+                    const formatedDate = formatDate(item.dateStuffing);
+                    contByDate[formatedDate] = (contByDate[formatedDate] || 0) + parseInt(item.qtyCont || 0);
+                }
+            });
+
+            const dateLabels = Object.keys(contByDate).slice(-10);
+            const dateValues = Object.values(contByDate).slice(-10);
+
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            if (barChartInstance) barChartInstance.destroy();
+
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: dateLabels,
+                    datasets: [{
+                        label: 'Số lượng Container đóng (Stuffing)',
+                        data: dateValues,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, font: { size: 9 } },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: { ticks: { font: { size: 9 } }, grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // KẾT XUẤT EXPORT PLAN CHUYÊN NGHIỆP THEO ĐÚNG TRÌNH BÀY EXCEL CỦA ANH
+        function exportToExcel() {
+            if (dbData.length === 0) {
+                showToast("Không có dữ liệu để xuất!", "error");
+                return;
+            }
+
+            // Tính toán thống kê hàng đầu
+            const totalPo = dbData.length;
+            const totalCont = dbData.reduce((sum, item) => sum + parseInt(item.qtyCont || 0), 0);
+            const totalCleared = dbData.filter(item => item.tkhq === "Đã thông quan").length;
+            const notCleared = totalPo - totalCleared;
+            const totalCostValue = totalCont * 30000;
+
+            // Xây dựng Header thông tin tổng quan giống thiết kế góc phải trong ảnh của anh
+            const rawData = [
+                ["THEO DÕI TIẾN ĐỘ XUẤT HÀNG", "", "", "", "", "", "THỜI GIAN IN:", "21-May-26 22:44"],
+                ["", "", "", "", "", "", "TỔNG SỐ PO:", totalPo],
+                ["", "", "", "", "", "", "TỔNG CONTAINER:", totalCont],
+                ["", "", "", "", "", "", "ĐÃ THÔNG QUAN:", totalCleared],
+                ["", "", "", "", "", "", "CHƯA THÔNG QUAN:", notCleared],
+                ["", "", "", "", "", "", "TỔNG CHI PHÍ THỦ TỤC:", `${totalCostValue.toLocaleString('vi-VN')} VNĐ`],
+                [], // Hàng trống giãn cách
+                [
+                    "STT", 
+                    "CONTRACT / PO NO", 
+                    "LOẠI HÀNG (TYPE)", 
+                    "QUY CÁCH ĐÓNG GÓI",
+                    "SL CONTAINER (QTY)", 
+                    "SỐ BOOKING", 
+                    "TÊN TÀU / CHUYẾN (VESSEL/VOY)", 
+                    "NƠI HẠ BÃI (DROP-OFF)", 
+                    "NGÀY ĐÓNG HÀNG (STUFFING)", 
+                    "NGÀY TÀU CHẠY (ETD)", 
+                    "HẠN CHÓT (CUT-OFF)", 
+                    "SỐ TỜ KHAI",
+                    "LUỒNG",
+                    "TRẠNG THÁI TK", 
+                    "VÀO SỔ TÀU", 
+                    "GHI CHÚ (NOTE)"
+                ]
+            ];
+
+            // Thêm từng lô hàng từ Database vào mảng Excel
+            dbData.forEach((item, idx) => {
+                let phanLuongStr = "Xanh";
+                if (item.phanLuong === "2") phanLuongStr = "Vàng";
+                if (item.phanLuong === "3") phanLuongStr = "Đỏ";
+
+                rawData.push([
+                    idx + 1,
+                    item.poNo,
+                    item.type,
+                    item.packaging || 'Bales',
+                    parseInt(item.qtyCont || 0),
+                    item.bookingNo,
+                    item.vesselVoy || '',
+                    item.dropOff || '',
+                    formatDate(item.dateStuffing),
+                    formatDate(item.etd),
+                    formatDateTime(item.cutOff),
+                    item.soToKhai || '',
+                    phanLuongStr,
+                    item.tkhq,
+                    item.enteredVessel ? "ĐÃ VÀO SỔ" : "CHƯA VÀO",
+                    item.ghiChu || ''
+                ]);
+            });
+
+            // Tạo Worksheet từ dữ liệu thô
+            const worksheet = XLSX.utils.aoa_to_sheet(rawData);
+
+            // Gộp các ô tiêu đề lớn đẹp mắt
+            worksheet['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Gộp tiêu đề "THEO DÕI TIẾN ĐỘ..."
+            ];
+
+            // Thiết lập độ rộng chuẩn hóa cho các cột Excel
+            const colWidths = [
+                { wch: 6 },   // STT
+                { wch: 18 },  // CONTRACT
+                { wch: 18 },  // TYPE
+                { wch: 18 },  // PACKAGING
+                { wch: 12 },  // QTY
+                { wch: 16 },  // BOOKING
+                { wch: 26 },  // VESSEL/VOY
+                { wch: 22 },  // DROP-OFF
+                { wch: 16 },  // STUFFING
+                { wch: 14 },  // ETD
+                { wch: 18 },  // CUT-OFF
+                { wch: 15 },  // SỐ TỜ KHAI
+                { wch: 10 },  // LUỒNG
+                { wch: 18 },  // TRẠNG THÁI
+                { wch: 14 },  // VÀO SỔ TÀU
+                { wch: 20 }   // NOTE
+            ];
+            worksheet['!cols'] = colWidths;
+
+            // Thiết lập Workbook mới
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Plan & Gantt Summary");
+            
+            const fileName = `Export_Plan_04-2026.xlsx`;
+            XLSX.writeFile(workbook, fileName);
+
+            showToast("Đã trích xuất dữ liệu ra file Excel thành công!");
+        }
+
+        // Tải dữ liệu mẫu ban đầu bám sát hình ảnh chụp thực tế của anh
+        function loadDemoData() {
+            if (dbData.length === 0) {
+                dbData = [
+                    {
+                        id: "ID-1",
+                        poNo: "09/TL-SW/26",
+                        type: "Latex LA",
+                        packaging: "Flexibag",
+                        qtyCont: 2,
+                        bookingNo: "ONE040523490",
+                        vesselVoy: "COSCO SHIPPING / V.234W",
+                        dropOff: "Cảng Cát Lái",
+                        dateStuffing: "2026-05-18",
+                        etd: "2026-05-22",
+                        cutOff: "2026-05-21T01:00",
+                        soToKhai: "300412356501",
+                        phanLuong: "1", // Luồng Xanh
+                        tkhq: "Đã thông quan",
+                        enteredVessel: true,
+                        ghiChu: "Lấy 2 cont của Phước Sơn chuyển qua"
+                    },
+                    {
+                        id: "ID-2",
+                        poNo: "PNR02148/26",
+                        type: "Latex HA",
+                        packaging: "Flexibag",
+                        qtyCont: 1,
+                        bookingNo: "COSCO902341",
+                        vesselVoy: "MOL CELEBRATION / V.045E",
+                        dropOff: "Cảng Cát Lái",
+                        dateStuffing: "2026-05-20",
+                        etd: "2026-05-23",
+                        cutOff: "2026-05-22T08:00", // < 48h so với 21-May 22:44
+                        soToKhai: "300412569800",
+                        phanLuong: "2", // Luồng Vàng
+                        tkhq: "Đang làm thủ tục",
+                        enteredVessel: false,
+                        ghiChu: "Xin hạ bãi muộn trước 12h"
+                    },
+                    {
+                        id: "ID-3",
+                        poNo: "05/TL-HK HARMONY/26",
+                        type: "MIX 10",
+                        packaging: "SW Pallet Nhựa",
+                        qtyCont: 5,
+                        bookingNo: "HLCU20260410",
+                        vesselVoy: "AL BAHIA / V.120N",
+                        dropOff: "Cảng Cái Mép",
+                        dateStuffing: "2026-05-21",
+                        etd: "2026-05-24",
+                        cutOff: "2026-05-23T08:00", // < 48h so với 21-May 22:44
+                        soToKhai: "300456123000",
+                        phanLuong: "3", // Luồng Đỏ
+                        tkhq: "Chưa thông quan",
+                        enteredVessel: false,
+                        ghiChu: "Gấp! Cần bám sát hải quan hạ bãi"
+                    }
+                ];
+                saveData();
+            }
+        }
+
+
+        /* ==========================================
+           LOGIC TRỢ LÝ AI & CO GIÃN CỬA SỔ CHAT
+           ========================================== */
+
+        // Xử lý cơ chế kéo co giãn (resize-handle) cho cửa sổ chat AI
+        const resizeHandle = document.getElementById('resize-handle');
+        const aiChatColumn = document.getElementById('ai-chat-column');
+        const mainContentColumn = document.getElementById('main-content-column');
+
+        let isResizing = false;
+
+        resizeHandle.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+            
+            const windowWidth = window.innerWidth;
+            const rightOffset = windowWidth - e.clientX;
+            
+            // Thiết lập giới hạn kích thước kéo rộng từ 250px đến 700px
+            const newWidth = Math.max(250, Math.min(700, rightOffset));
+            
+            // Chuyển cấu trúc cột của Chat AI từ col-span sang kích thước pixel tĩnh khi đang thực hiện kéo
+            aiChatColumn.style.width = `${newWidth}px`;
+            aiChatColumn.classList.remove('xl:col-span-3');
+            aiChatColumn.style.flex = 'none';
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+            }
+        });
+
+        // Hàm gọi API Gemini tích hợp Key của người dùng linh hoạt
+        async function callGemini(prompt, systemInstruction = "") {
+            // Ưu tiên dùng API Key do anh nhập trực tiếp trên giao diện
+            const apiKey = userGeminiApiKey || ""; 
+            
+            if (!apiKey) {
+                throw new Error("Anh chưa dán khóa API Gemini của anh ở ô thiết lập phía trên cột chat!");
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`Phản hồi lỗi mạng! Mã lỗi: ${response.status}`);
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "Không có phản hồi từ AI.";
+                } catch (error) {
+                    if (i === 4) {
+                        throw new Error(error.message || "Không thể kết nối đến máy chủ AI.");
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // Mở Modal AI hiển thị phản hồi
+        function openAIModal(title, content) {
+            document.getElementById('ai-modal-title').innerText = title;
+            document.getElementById('ai-modal-content').innerText = content;
+            document.getElementById('ai-modal').classList.remove('hidden');
+        }
+
+        function closeAIModal() {
+            document.getElementById('ai-modal').classList.add('hidden');
+        }
+
+        // Sao chép nội dung AI
+        function copyAIConsult() {
+            const content = document.getElementById('ai-modal-content').innerText;
+            const el = document.createElement('textarea');
+            el.value = content;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast("Đã sao chép nội dung vào khay nhớ tạm!");
+        }
+
+        // TÍNH NĂNG 1: ✨ AI PHÂN TÍCH RỦI RO LÔ HÀNG CHI TIẾT
+        async function analyzeRiskWithAI(id) {
+            const record = dbData.find(item => item.id === id);
+            if (!record) return;
+
+            showToast("AI đang tiến hành phân tích bảo mật & rủi ro cho anh...", "success");
+            
+            const prompt = `Phân tích rủi ro logistics chi tiết cho lô hàng xuất khẩu này:
+            - Mã PO (PO NO.): ${record.poNo}
+            - Loại Sản phẩm (TYPE): ${record.type}
+            - Quy cách đóng gói: ${record.packaging || 'Bales'}
+            - Số lượng container (QTY CONT): ${record.qtyCont}
+            - Số Booking: ${record.bookingNo}
+            - Tên tàu/Chuyến: ${record.vesselVoy || 'Chưa có'}
+            - Nơi hạ bãi: ${record.dropOff || 'Chưa có'}
+            - Ngày đóng hàng: ${record.dateStuffing || 'Chưa rõ'}
+            - Ngày tàu chạy dự kiến (ETD): ${record.etd || 'Chưa rõ'}
+            - Thời hạn Cut-off: ${record.cutOff || 'Chưa rõ'}
+            - Tờ khai số: ${record.soToKhai || 'Chưa có'} (Luồng phân loại: ${record.phanLuong})
+            - Trạng thái hải quan: ${record.tkhq}
+            - Đã vào sổ tàu chưa: ${record.enteredVessel ? "Rồi" : "Chưa"}
+            - Ghi chú: ${record.ghiChu || 'Không có'}
+            
+            Hãy đưa ra báo cáo ngắn gọn bằng tiếng Việt:
+            1. Đánh giá mức độ rủi ro dựa trên mốc giờ Cut-off và trạng thái hải quan. Cảnh báo khẩn cấp nếu còn dưới 48 giờ chưa vào sổ tàu.
+            2. Cho biết lưu ý đặc thù về quy cách đóng gói (${record.packaging}) và dòng sản phẩm (${record.type}) này khi vận chuyển.
+            3. 3 đầu việc anh cần chỉ đạo hiện trường giải quyết nhanh để tránh bị rớt tàu (Roll tàu).`;
+
+            const systemInstruction = "Bạn là chuyên gia cố vấn chuỗi cung ứng logistics cao cấp cho doanh nghiệp xuất khẩu cao su. Hãy trả lời cực kỳ thẳng thắn, ngắn gọn, có gạch đầu dòng rõ ràng, giải pháp thực tế.";
+
+            try {
+                const aiResponse = await callGemini(prompt, systemInstruction);
+                openAIModal(`AI Đánh Giá Nguy Cơ Lô Hàng: ${record.poNo}`, aiResponse);
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        // TÍNH NĂNG 2: ✨ AI TỰ ĐỘNG SOẠN THẢO EMAIL GỬI KHÁCH HÀNG (SHIPPING ADVICE)
+        async function generateEmailWithAI(id) {
+            const record = dbData.find(item => item.id === id);
+            if (!record) return;
+
+            showToast("AI đang thiết lập soạn thư điện tử vận chuyển...", "success");
+
+            const prompt = `Hãy viết một email thông báo vận chuyển (Shipping Advice) bằng TIẾNG ANH chuyên nghiệp gửi cho đối tác nước ngoài:
+            - Mã PO đặt hàng: ${record.poNo}
+            - Dòng hàng: ${record.type}
+            - Đóng gói: ${record.packaging || 'Bales'}
+            - Số lượng container: ${record.qtyCont}
+            - Booking No.: ${record.bookingNo}
+            - Tên Tàu/Số chuyến: ${record.vesselVoy || 'TBA'}
+            - Cảng xếp hàng hạ bãi: ${record.dropOff || 'TBA'}
+            - Ngày Stuffing đóng hàng: ${formatDate(record.dateStuffing)}
+            - Dự kiến ETD: ${formatDate(record.etd)}
+            - Hải quan: ${record.tkhq}
+
+            Yêu cầu nội dung lịch thiệp, cấu trúc danh mục thông tin rõ ràng và có đính kèm một bản dịch tóm tắt tiếng Việt ở cuối để đối chiếu thuận tiện.`;
+
+            const systemInstruction = "Bạn là trưởng phòng Logistics của một tập đoàn xuất khẩu nông sản cao su toàn cầu, có văn phong tiếng Anh thương mại cực kỳ chuẩn xác và lịch sự.";
+
+            try {
+                const aiResponse = await callGemini(prompt, systemInstruction);
+                openAIModal(`AI Soạn Thảo Thư Vận Chuyển: ${record.poNo}`, aiResponse);
+            } catch (err) {
+                showToast(err.message, "error");
+            }
+        }
+
+        // TÍNH NĂNG 3: KHUNG CHATBOT LOGISTICS TRỰC TUYẾN
+        const chatMessages = document.getElementById('chat-messages');
+
+        function appendMessage(sender, text, isAi = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex items-start space-x-2";
+
+            if (isAi) {
+                msgDiv.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-[10px]">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-white p-2.5 rounded-r-xl rounded-bl-xl border border-slate-100 shadow-sm max-w-[85%] text-slate-700 leading-relaxed whitespace-pre-line">
+                        ${text}
+                    </div>
+                `;
+            } else {
+                msgDiv.className = "flex items-start space-x-2 justify-end";
+                msgDiv.innerHTML = `
+                    <div class="bg-indigo-600 text-white p-2.5 rounded-l-xl rounded-br-xl shadow-sm max-w-[85%] leading-relaxed">
+                        ${text}
+                    </div>
+                    <div class="w-6 h-6 rounded-full bg-slate-400 text-white flex items-center justify-center flex-shrink-0 text-[10px] font-bold">
+                        A
+                    </div>
+                `;
+            }
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendChatMessage(customText = "") {
+            const chatInput = document.getElementById('chat-input');
+            const messageText = customText || chatInput.value.trim();
+            if (!messageText) return;
+
+            appendMessage('user', messageText, false);
+            if (!customText) chatInput.value = '';
+
+            // Loading state của chatbot
+            const loadingId = 'ai-loading-' + Date.now();
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = loadingId;
+            loadingDiv.className = "flex items-start space-x-2";
+            loadingDiv.innerHTML = `
+                <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-[10px]">
+                    <i class="fa-solid fa-robot animate-spin"></i>
+                </div>
+                <div class="bg-slate-200 text-slate-600 p-2 rounded-r-xl rounded-bl-xl max-w-[85%] italic">
+                    AI đang phân tích và rà soát kế hoạch...
+                </div>
+            `;
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Tổng hợp toàn bộ danh sách kế hoạch hiện tại để AI hiểu ngữ cảnh dữ liệu
+            const contextDataString = dbData.map(item => 
+                `PO: ${item.poNo}, Loại: ${item.type}, Qty: ${item.qtyCont} cont, Booking: ${item.bookingNo}, ETD: ${item.etd || 'Chưa rõ'}, Cut-off: ${item.cutOff || 'Chưa rõ'}, Tờ khai: ${item.soToKhai || 'Chưa có'} (Luồng ${item.phanLuong}), TKHQ: ${item.tkhq}, Sổ tàu: ${item.enteredVessel ? "Đã vào" : "Chưa"}`
+            ).join('\n');
+
+            const finalPrompt = `Ngữ cảnh các chuyến hàng xuất khẩu hiện đang có trong kế hoạch của tôi:
+            ${contextDataString || "Chưa có dữ liệu chuyến hàng nào."}
+
+            Câu hỏi của tôi: ${messageText}`;
+
+            const systemInstruction = `Bạn là Trợ lý AI chuyên môn cao tích hợp trong "Export Plan Tracker". Bạn giúp người dùng rà soát thời hạn Cut-off gấp, thủ tục luồng tờ khai hải quan, hoặc các nghiệp vụ giao nhận vận tải quốc tế. Hãy luôn phản hồi súc tích, thực tế bằng tiếng Việt và xưng hô lịch sự là "Dạ anh".`;
+
+            try {
+                const aiResult = await callGemini(finalPrompt, systemInstruction);
+                document.getElementById(loadingId).remove();
+                appendMessage('ai', aiResult, true);
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                appendMessage('ai', "Đã xảy ra lỗi khi kết nối với AI: " + err.message, true);
+            }
+        }
+
+        // Bấm nút gợi ý nhanh trong chatbox
+        function sendQuickPrompt(promptText) {
+            sendChatMessage(promptText);
+        }
+
+        // Nhấn Enter trong ô Chat
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        // Xóa lịch sử chatbox
+        function clearAIChat() {
+            chatMessages.innerHTML = `
+                <div class="flex items-start space-x-2">
+                    <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-[10px]">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-white p-2.5 rounded-r-xl rounded-bl-xl border border-slate-100 shadow-sm max-w-[85%] text-slate-700">
+                        Đã dọn dẹp lịch sử chat. Tôi có thể hỗ trợ gì thêm cho anh về các lô hàng Latex/Drum này?
+                    </div>
+                </div>
+            `;
+        }
+
+        // Khởi động trang web
+        window.onload = function() {
+            loadDemoData(); // Nạp mẫu demo nếu cần
+            renderData();   // Hiển thị ra bảng
+        };
+    </script>
+</body>
+</html>
