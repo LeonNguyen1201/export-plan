@@ -1,3 +1,4 @@
+// File: api/gemini.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
@@ -5,16 +6,13 @@ export default async function handler(req, res) {
 
   const { prompt, systemInstruction } = req.body;
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  
-  // Dùng model 1.5-flash
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: systemInstruction || "" // Ở đây thư viện tự xử lý cho bạn
+  });
 
   try {
-    const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        // Đưa systemInstruction vào đúng chỗ Google yêu cầu
-        systemInstruction: systemInstruction
-    });
+    const result = await model.generateContent(prompt);
     const response = await result.response;
     res.status(200).json({ text: response.text() });
   } catch (error) {
