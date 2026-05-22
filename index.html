@@ -14,6 +14,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        /* Đồng bộ hóa font chữ Inter cho các thành phần văn bản nhưng loại trừ thẻ icon FontAwesome để không mất icon */
+        body, input, select, textarea, button, table, th, td, span, div, h1, h2, h3, h4, p {
+            font-family: 'Inter', sans-serif;
+        }
+        
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -44,6 +50,42 @@
             font-weight: 700 !important;
             border-left: 5px solid #ef4444 !important;
         }
+
+        /* Styles cho việc kéo thả kích thước cột */
+        th {
+            position: relative;
+            user-select: none;
+            /* Tiêu đề tự động xuống dòng khi thu nhỏ */
+            white-space: normal !important;
+            word-wrap: break-word;
+            word-break: keep-all;
+            vertical-align: middle;
+        }
+        .resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 5px;
+            background: rgba(0, 0, 0, 0.05);
+            cursor: col-resize;
+            z-index: 10;
+            transition: background 0.15s;
+        }
+        .resizer:hover, .resizer.resizing {
+            background: #2563eb;
+            width: 6px;
+        }
+        /* Ngăn vỡ layout bảng khi co dãn */
+        table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 transition-colors duration-200 min-h-screen flex flex-col">
@@ -57,40 +99,31 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide">EXPORT PLAN TRACKER</h1>
-                    <p class="text-xs text-blue-200">Hệ Thống Theo Dõi Tiến Độ Xuất Khẩu & Trợ Lý Logistics AI v8.1</p>
+                    <p class="text-xs text-blue-200">Hệ Thống Theo Dõi Tiến Độ Xuất Khẩu & Trợ Lý Logistics AI v8.3</p>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
                 <div class="bg-blue-900/50 px-4 py-1.5 rounded-lg border border-blue-500/30 text-xs flex items-center gap-3">
                     <span class="text-blue-300 font-medium"><i class="fa-regular fa-clock mr-1"></i> GIỜ HIỆN TẠI HỆ THỐNG:</span>
-                    <span class="font-bold text-amber-300" id="current-time-display">21-May-26 22:44</span>
+                    <span class="font-bold text-amber-300" id="current-time-display">22-May-26 11:27</span>
                     <script>
-    function updateClock() {
-        // Lấy thời gian hiện tại từ hệ thống của máy người dùng
-        const now = new Date();
-        
-        // Định dạng lại theo kiểu dd-Mon-yy HH:MM
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = now.toLocaleString('en-US', { month: 'short' });
-        const year = String(now.getFullYear()).slice(-2);
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        
-        const timeString = `${day}-${month}-${year} ${hours}:${minutes}`;
-        
-        // Cập nhật vào thẻ span có id="current-time-display"
-        const el = document.getElementById('current-time-display');
-        if (el) {
-            el.textContent = timeString;
-        }
-    }
-
-    // Chạy hàm này mỗi 1000ms (1 giây)
-    setInterval(updateClock, 1000);
-    
-    // Gọi ngay lập tức một lần để không bị trễ 1 giây đầu tiên
-    updateClock();
-</script>
+                        function updateClock() {
+                            const now = new Date();
+                            const day = String(now.getDate()).padStart(2, '0');
+                            const month = now.toLocaleString('en-US', { month: 'short' });
+                            const year = String(now.getFullYear()).slice(-2);
+                            const hours = String(now.getHours()).padStart(2, '0');
+                            const minutes = String(now.getMinutes()).padStart(2, '0');
+                            
+                            const timeString = `${day}-${month}-${year} ${hours}:${minutes}`;
+                            const el = document.getElementById('current-time-display');
+                            if (el) {
+                                el.textContent = timeString;
+                            }
+                        }
+                        setInterval(updateClock, 1000);
+                        updateClock();
+                    </script>
                 </div>
                 <span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -179,7 +212,7 @@
                     <p id="kpi-cleared" class="text-xl font-bold text-emerald-700">0</p>
                 </div>
             </div>
-            <!-- KPI Tổng chi phí thông quan (Cập nhật nhân 30,000 VND / Container như anh yêu cầu) -->
+            <!-- KPI Tổng chi phí thông quan -->
             <div class="bg-gradient-to-br from-emerald-600 to-teal-700 p-4 rounded-xl text-white shadow-sm flex items-center space-x-3">
                 <div class="p-3 bg-white/20 text-white rounded-lg">
                     <i class="fa-solid fa-coins text-xl"></i>
@@ -191,15 +224,17 @@
             </div>
         </div>
 
-        <!-- Khung chia cột linh hoạt: Form nhập (3) | Bảng theo dõi (6) | Chatbox AI tùy biến kích thước (3) -->
+        <!-- Khung chia cột linh hoạt -->
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             
             <!-- CỘT 1: FORM NHẬP LIỆU (XL: COL-SPAN-3) -->
             <div class="xl:col-span-3">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-20">
+                    <!-- Sửa chữ "XUẤT KHẨU" đồng bộ hoàn toàn với "FORM NHẬP DỮ LIỆU" về font, màu sắc và cỡ chữ -->
                     <div class="bg-blue-600 text-white px-4 py-3 text-center">
-                        <h2 class="text-sm font-bold tracking-wide uppercase flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-file-pen"></i>FORM NHẬP DỮ LIỆU XUẤT KHẨU
+                        <h2 class="text-sm font-bold tracking-wider uppercase flex flex-col items-center justify-center leading-tight">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-file-pen"></i>FORM NHẬP DỮ LIỆU</span>
+                            <span class="mt-0.5">XUẤT KHẨU</span>
                         </h2>
                     </div>
 
@@ -325,7 +360,7 @@
                             </div>
                         </div>
 
-                        <!-- Các nút tương tác lớn và trực quan -->
+                        <!-- Các nút tương tác -->
                         <div class="pt-3 flex flex-col space-y-2">
                             <button type="submit" id="btn-submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center space-x-1.5 text-xs tracking-wider uppercase">
                                 <i class="fa-solid fa-arrow-right-long text-xs animate-pulse"></i>
@@ -355,7 +390,7 @@
             <!-- CỘT 2: DANH SÁCH & BẢNG KẾ HOẠCH CHI TIẾT (XL: COL-SPAN-9) -->
             <div id="main-content-column" class="xl:col-span-9 space-y-2">
                 
-                <!-- Tìm kiếm và Bộ lọc nhanh -->
+                <!-- Tìm kiếm và Bộ lọc nhanh với Ô lọc Tháng-Năm mới -->
                 <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div class="relative flex-1">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 text-xs">
@@ -363,7 +398,12 @@
                         </span>
                         <input type="text" id="search-input" onkeyup="filterData()" placeholder="Tìm kiếm nhanh PO, Booking, Số tờ khai..." class="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div class="flex space-x-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Bộ lọc tháng năm, giới hạn từ 2025 đến 2050 -->
+                        <div class="relative flex items-center">
+                            <span class="text-[11px] text-slate-500 font-bold mr-1 uppercase">Tháng:</span>
+                            <input type="month" id="filter-month" min="2025-01" max="2050-12" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
+                        </div>
                         <select id="filter-type" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="ALL">Tất cả LOẠI</option>
                             <option value="Latex HA">Latex HA</option>
@@ -402,17 +442,18 @@
                         <table class="w-full text-left border-collapse" id="export-plan-main-table">
                             <thead>
                                 <tr class="bg-slate-50 text-slate-500 text-[10px] font-extrabold uppercase border-b border-slate-200 sticky top-0 bg-slate-50 z-10">
-                                    <th class="py-3 px-3">STT</th>
-                                    <th class="py-3 px-3">PO NO / LOẠI / Q/C</th>
-                                    <th class="py-3 px-3">BOOKING / TÀU</th>
-                                    <th class="py-3 px-2 text-center">CONT</th>
-                                    <th class="py-3 px-3">HẠ BÃI / STUFFING / ETD</th>
-                                    <th class="py-3 px-3">CUT-OFF</th>
-                                    <th class="py-3 px-2 text-center">TỜ KHAI / LUỒNG</th>
-                                    <th class="py-3 px-3 text-center">TRẠNG THÁI TK</th>
-                                    <th class="py-3 px-2 text-center">VÀO SỔ TÀU</th>
-                                    <th class="py-3 px-3">GHI CHÚ</th>
-                                    <th class="py-3 px-3 text-center">HÀNH ĐỘNG / AI</th>
+                                    <th class="py-3 px-3" style="width: 50px;">STT<div class="resizer"></div></th>
+                                    <th class="py-3 px-3" style="width: 140px;">PO NO / LOẠI / Q/C<div class="resizer"></div></th>
+                                    <th class="py-3 px-3" style="width: 130px;">BOOKING / TÀU<div class="resizer"></div></th>
+                                    <th class="py-3 px-2 text-center" style="width: 60px;">CONT<div class="resizer"></div></th>
+                                    <th class="py-3 px-3" style="width: 155px;">HẠ BÃI / STUFFING / ETD<div class="resizer"></div></th>
+                                    <th class="py-3 px-3" style="width: 125px;">CUT-OFF<div class="resizer"></div></th>
+                                    <th class="py-3 px-2 text-center" style="width: 110px;">TỜ KHAI / LUỒNG<div class="resizer"></div></th>
+                                    <!-- Tiêu đề Cột Trạng thái Tờ khai căn giữa toàn bộ -->
+                                    <th class="py-3 px-3 text-center" style="width: 130px;">TRẠNG THÁI TK<div class="resizer"></div></th>
+                                    <th class="py-3 px-2 text-center" style="width: 80px;">VÀO SỔ TÀU<div class="resizer"></div></th>
+                                    <th class="py-3 px-3" style="width: 100px;">GHI CHÚ<div class="resizer"></div></th>
+                                    <th class="py-3 px-3 text-center" style="width: 110px;">HÀNH ĐỘNG / AI<div class="resizer"></div></th>
                                 </tr>
                             </thead>
                             <tbody id="table-body" class="divide-y divide-slate-100 text-[11px] font-medium">
@@ -427,7 +468,7 @@
                 </div>
             </div>
 
-            <!-- CỘT 3: TRỢ LÝ LOGISTICS AI TÙY CHỈNH KÍCH THƯỚC (XL: COL-SPAN-3) -->
+            <!-- CỘT 3: TRỢ LÝ LOGISTICS AI TÙY CHỈNH KÍCH THƯỚC (XL: COL-SPAN-3) - Mặc định ẩn, bật lên khi dùng -->
             <div id="ai-chat-column" class="xl:col-span-3 transition-all duration-300 hidden">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-20 flex flex-col h-[650px] relative">
                     
@@ -452,7 +493,7 @@
                         </div>
                     </div>
 
-                    <!-- Ô thiết lập API Key Gemini cá nhân -->
+                    <!-- Khung API Key -->
                     <div class="bg-indigo-50/50 p-2.5 border-b border-slate-200 pl-6 flex flex-col space-y-1">
                         <label class="text-[9px] font-bold text-indigo-800 uppercase tracking-wide flex justify-between">
                             <span>Khóa API Gemini của bạn:</span>
@@ -510,17 +551,19 @@
 
             <!-- 1. BẢNG SƠ ĐỒ TIẾN ĐỘ GANTT CHART (QUAN TRỌNG) -->
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                    <i class="fa-solid fa-square-poll-horizontal text-indigo-600"></i>Sơ đồ Gantt Tiến độ Đóng hàng & Tàu chạy
+                <!-- Đồng bộ font chữ, thiết đề tiêu đề Gantt cao cấp, sang trọng -->
+                <h4 class="text-sm font-bold tracking-wider text-indigo-900 uppercase flex items-center gap-2 mb-4 border-b pb-2 border-slate-200">
+                    <i class="fa-solid fa-square-poll-horizontal text-indigo-600 text-lg"></i>
+                    <span>Sơ đồ Gantt Tiến độ Đóng hàng & Tàu chạy</span>
                 </h4>
                 <div class="overflow-x-auto">
                     <div class="min-w-[1000px] bg-white rounded-lg border border-slate-100 overflow-hidden text-[10px]">
-                        <!-- Thanh tiêu đề mốc thời gian Gantt -->
-                        <div class="grid grid-cols-12 bg-slate-100 border-b border-slate-200 font-bold py-2 px-3 text-slate-600">
-                            <div class="col-span-3 border-r border-slate-200 pr-2">Thông tin PO / Booking</div>
+                        <!-- Tách tỉ lệ, kéo rộng Timeline (col-span-8 thay vì 7, PO rút về col-span-2) -->
+                        <div class="grid grid-cols-12 bg-slate-100 border-b border-slate-200 font-bold py-2.5 px-3 text-slate-600">
+                            <div class="col-span-2 border-r border-slate-200 pr-2">Thông tin PO / Booking</div>
                             <div class="col-span-1 text-center border-r border-slate-200">Đóng Hàng</div>
                             <div class="col-span-1 text-center border-r border-slate-200">Tàu Chạy (ETD)</div>
-                            <div class="col-span-7 px-2">Phân bố tiến độ theo ngày (Timeline)</div>
+                            <div class="col-span-8 px-3">Phân bố tiến độ theo ngày (Timeline)</div>
                         </div>
                         <div id="gantt-rows-container" class="divide-y divide-slate-100">
                             <!-- Các dòng Gantt tự động phát sinh qua JS -->
@@ -532,14 +575,14 @@
             <!-- 2. CÁC BIỂU ĐỒ TRỰC QUAN -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- Biểu đồ cột -->
-                <div class="h-[280px] flex flex-col justify-between">
-                    <h4 class="text-xs font-semibold text-slate-600 mb-2 text-center">Sản lượng Container (QTY CONT) theo ngày đóng hàng</h4>
+                <div class="h-[300px] flex flex-col justify-between">
+                    <h4 class="text-xs font-semibold text-slate-600 mb-2 text-center">Sản lượng Container (QTY CONT) theo ngày đóng hàng (Tuần này)</h4>
                     <div class="relative flex-1 w-full h-full">
                         <canvas id="barChart"></canvas>
                     </div>
                 </div>
                 <!-- Biểu đồ tròn -->
-                <div class="h-[280px] flex flex-col justify-between">
+                <div class="h-[300px] flex flex-col justify-between">
                     <h4 class="text-xs font-semibold text-slate-600 mb-2 text-center">Tỷ trọng phân loại sản phẩm (TYPE)</h4>
                     <div class="relative flex-1 w-full h-full flex justify-center">
                         <canvas id="pieChart"></canvas>
@@ -558,19 +601,21 @@
     </footer>
 
     <script>
-        // Thời điểm hiện tại giả định theo hệ thống của anh: 21-May-2026 22:44
-        const systemCurrentTime = new Date("2026-05-21T22:44:00");
+        // Thời điểm hiện tại hệ thống
+        const systemCurrentTime = new Date("2026-05-22T11:27:00");
 
         // Khởi tạo/Lấy dữ liệu từ Local Storage
         let dbData = JSON.parse(localStorage.getItem('export_plan_data')) || [];
 
         // Lưu trữ khóa API người dùng nhập vào
         let userGeminiApiKey = localStorage.getItem('user_gemini_api_key') || "";
-        document.getElementById('user-api-key').value = userGeminiApiKey;
 
         // Khai báo các đối tượng biểu đồ toàn cục
         let barChartInstance = null;
         let pieChartInstance = null;
+
+        // Lưu trữ thông tin phân rã chi tiết sản lượng tuần này
+        let weeklyDetailsArray = [];
 
         // Định vị các phần tử giao diện
         const form = document.getElementById('export-form');
@@ -587,7 +632,6 @@
             localStorage.setItem('user_gemini_api_key', key);
             showToast("Đã lưu khóa API Gemini thành công!", "success");
             
-            // Thông báo trên khung chat
             appendMessage('ai', `Đã nhận khóa API cá nhân của anh: \`${key.substring(0,6)}...${key.slice(-4)}\`. Hệ thống sẵn sàng trả lời trực tiếp không giới hạn!`, true);
         }
 
@@ -614,7 +658,7 @@
             return `${d}/${m}/${y} ${h}:${mi}`;
         }
 
-        // Hàm hiện thông báo toast khi hoàn thành tác vụ
+        // Hàm hiện thông báo toast
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const toastMsg = document.getElementById('toast-message');
@@ -634,7 +678,7 @@
             }, 3000);
         }
 
-        // Custom Confirm modal (tránh việc sử dụng alert/confirm mặc định của trình duyệt)
+        // Custom Confirm modal
         function showConfirmModal(title, description, onConfirm) {
             const modal = document.getElementById('custom-modal');
             const modalTitle = document.getElementById('modal-title');
@@ -647,7 +691,6 @@
             
             modal.classList.remove('hidden');
             
-            // Xóa tất cả sự kiện cũ trên nút bằng cách clone
             const newBtnConfirm = btnConfirm.cloneNode(true);
             btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
 
@@ -661,7 +704,7 @@
             };
         }
 
-        // Thay đổi trực tiếp trạng thái "Vào Sổ Tàu" ngay trên bảng dữ liệu
+        // Thay đổi trực tiếp trạng thái "Vào Sổ Tàu"
         function toggleEnteredVessel(id, isChecked) {
             const index = dbData.findIndex(item => item.id === id);
             if (index !== -1) {
@@ -683,17 +726,14 @@
 
             dataToRender.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                
-                // Mặc định style dòng
                 let rowClass = "hover:bg-slate-50 transition-colors border-b border-slate-100 text-slate-700";
                 
-                // Tính toán cảnh báo nhấp nháy đỏ-vàng liên tục nếu giờ Cut-off đang đến gần trong 48 tiếng và CHƯA Vào sổ tàu
+                // Tính toán cảnh báo nhấp nháy
                 let isCutoffWarning = false;
                 if (item.cutOff && !item.enteredVessel) {
                     const cutoffTime = new Date(item.cutOff);
                     const diffMs = cutoffTime - systemCurrentTime;
                     const diffHours = diffMs / (1000 * 60 * 60);
-                    // Cảnh báo nếu nhỏ hơn hoặc bằng 48 giờ
                     if (diffHours >= 0 && diffHours <= 48) {
                         isCutoffWarning = true;
                     }
@@ -712,7 +752,6 @@
                 if (item.tkhq === "Đã thông quan") tkhqColor = "bg-emerald-50 text-emerald-700 border border-emerald-200";
                 if (item.tkhq === "Đã kiểm hóa") tkhqColor = "bg-sky-50 text-sky-700 border border-sky-200";
 
-                // Phân luồng Tờ Khai hiển thị Xanh/Vàng/Đỏ
                 let phanLuongBadge = "-";
                 if (item.phanLuong === "1") phanLuongBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-300">Luồng Xanh</span>';
                 if (item.phanLuong === "2") phanLuongBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">Luồng Vàng</span>';
@@ -721,21 +760,21 @@
                 tr.innerHTML = `
                     <td class="py-3 px-3 font-bold text-slate-400 text-center">${index + 1}</td>
                     <td class="py-3 px-3">
-                        <div class="font-extrabold text-slate-900">${item.poNo}</div>
+                        <div class="font-extrabold text-slate-900 truncate" title="${item.poNo}">${item.poNo}</div>
                         <div class="mt-1 flex gap-1 items-center flex-wrap">
                             <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200">${item.type}</span>
                             <span class="px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-700 bg-slate-100 border border-slate-200">${item.packaging || 'Bales'}</span>
                         </div>
                     </td>
                     <td class="py-3 px-3">
-                        <div class="font-bold text-slate-800"><i class="fa-solid fa-receipt mr-1 text-slate-400"></i>${item.bookingNo}</div>
-                        <div class="text-[10px] text-slate-500 mt-0.5 font-semibold">${item.vesselVoy || 'Chưa có'}</div>
+                        <div class="font-bold text-slate-800 truncate" title="${item.bookingNo}"><i class="fa-solid fa-receipt mr-1 text-slate-400"></i>${item.bookingNo}</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5 font-semibold truncate" title="${item.vesselVoy || 'Chưa có'}">${item.vesselVoy || 'Chưa có'}</div>
                     </td>
                     <td class="py-3 px-2 text-center">
                         <span class="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-md font-extrabold text-xs">${item.qtyCont}</span>
                     </td>
                     <td class="py-3 px-3 space-y-1">
-                        <div class="text-[10px] text-slate-600 truncate max-w-[130px]"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i>${item.dropOff || 'Chưa hạ bãi'}</div>
+                        <div class="text-[10px] text-slate-600 truncate" title="${item.dropOff || 'Chưa hạ bãi'}"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i>${item.dropOff || 'Chưa hạ bãi'}</div>
                         <div class="text-[10px] text-slate-500 font-medium">Stuffing: <span class="text-slate-800 font-semibold">${formatDate(item.dateStuffing)}</span></div>
                         <div class="text-[10px] text-indigo-700 font-bold">ETD: <span class="text-blue-800">${formatDate(item.etd)}</span></div>
                     </td>
@@ -749,32 +788,31 @@
                         <div class="font-bold text-slate-800 text-[11px]">${item.soToKhai || '-'}</div>
                         <div>${phanLuongBadge}</div>
                     </td>
+                    <!-- Thiết lập căn giữa hoàn hảo & Đồng bộ font chữ mượt mà chuẩn Inter -->
                     <td class="py-3 px-3 text-center">
-                        <span class="px-2 py-1 rounded-full text-[9px] font-extrabold ${tkhqColor}">
-                            ${item.tkhq}
-                        </span>
+                        <div class="flex items-center justify-center h-full w-full">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-semibold ${tkhqColor} inline-block whitespace-nowrap">
+                                ${item.tkhq}
+                            </span>
+                        </div>
                     </td>
                     <td class="py-3 px-2 text-center">
-                        <input type="checkbox" onchange="toggleEnteredVessel('${item.id}', this.checked)" ${item.enteredVessel ? 'checked' : ''} class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
+                        <input type="checkbox" onchange="toggleEnteredVessel('${item.id}', this.checked)" ${item.enteredVessel ? 'checked' : ''} class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer inline-block align-middle">
                     </td>
-                    <td class="py-3 px-3 text-slate-500 italic text-[10px] max-w-[100px] truncate" title="${item.ghiChu || ''}">
-                        ${item.ghiChu || '-'}
+                    <td class="py-3 px-3 text-slate-500 italic text-[10px]" title="${item.ghiChu || ''}">
+                        <div class="truncate max-w-[120px]">${item.ghiChu || '-'}</div>
                     </td>
                     <td class="py-3 px-3 text-center">
                         <div class="flex items-center justify-center space-x-1.5">
-                            <!-- Nút AI phân tích rủi ro -->
-                            <button onclick="analyzeRiskWithAI('${item.id}')" title="✨ AI phân tích rủi ro lô hàng" class="p-1 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-all">
+                            <button onclick="activateAndShowAIChat(); analyzeRiskWithAI('${item.id}');" title="✨ AI phân tích rủi ro lô hàng" class="p-1 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded transition-all">
                                 <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
                             </button>
-                            <!-- Nút AI soạn Email -->
-                            <button onclick="generateEmailWithAI('${item.id}')" title="✨ AI soạn Email" class="p-1 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-all">
+                            <button onclick="activateAndShowAIChat(); generateEmailWithAI('${item.id}');" title="✨ AI soạn Email" class="p-1 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-all">
                                 <i class="fa-regular fa-envelope text-xs"></i>
                             </button>
-                            <!-- Nút sửa -->
                             <button onclick="editRecord('${item.id}')" title="Sửa thông tin" class="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-all">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
                             </button>
-                            <!-- Nút xóa -->
                             <button onclick="deleteRecord('${item.id}')" title="Xóa" class="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-all">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
@@ -784,25 +822,34 @@
                 tableBody.appendChild(tr);
             });
 
-            // Cập nhật số liệu KPI thống kê nhanh
+            // Cập nhật số liệu KPI
             document.getElementById('kpi-total-po').innerText = dataToRender.length;
             const totalCont = dataToRender.reduce((sum, item) => sum + parseInt(item.qtyCont || 0), 0);
             document.getElementById('kpi-total-cont').innerText = totalCont;
             const clearedCount = dataToRender.filter(item => item.tkhq === "Đã thông quan").length;
             document.getElementById('kpi-cleared').innerText = clearedCount;
 
-            // TÍNH TOÁN TỔNG CHI PHÍ THÔNG QUAN = TỔNG CONT * 30.000 VNĐ
             const totalCostValue = totalCont * 30000;
             document.getElementById('kpi-total-cost').innerText = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalCostValue);
-
             document.getElementById('record-count').innerText = `${dataToRender.length} lô hàng`;
 
-            // Làm mới các biểu đồ dựa theo số liệu mới & Vẽ Gantt Chart
             updateCharts();
             renderGanttChart(dataToRender);
         }
 
-        // Vẽ Sơ đồ Gantt chi tiết thời gian đóng hàng và tàu chạy
+        // Tự động kích hoạt/Hiện vùng chat AI khi bấm nút AI
+        function activateAndShowAIChat() {
+            const aiChat = document.getElementById('ai-chat-column');
+            if (aiChat.classList.contains('hidden')) {
+                aiChat.classList.remove('hidden');
+                // Tối ưu layout chính
+                const mainContent = document.getElementById('main-content-column');
+                mainContent.classList.remove('xl:col-span-9');
+                mainContent.classList.add('xl:col-span-6');
+            }
+        }
+
+        // Vẽ Sơ đồ Gantt
         function renderGanttChart(dataToRender) {
             const ganttContainer = document.getElementById('gantt-rows-container');
             ganttContainer.innerHTML = '';
@@ -812,7 +859,6 @@
                 return;
             }
 
-            // Mốc ngày mẫu trải rộng từ 18-May-2026 đến 30-May-2026 (Trong khoảng dữ liệu)
             const startDate = new Date("2026-05-15");
             const endDate = new Date("2026-05-30");
             const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -826,7 +872,6 @@
                 const dateStuff = new Date(item.dateStuffing);
                 const dateEtd = new Date(item.etd);
 
-                // Tính toán vị trí phần trăm trên thanh Timeline Gantt
                 let leftPercent = 0;
                 let widthPercent = 0;
 
@@ -838,24 +883,21 @@
                 }
                 widthPercent = (Math.max(1, duration) / totalDays) * 100;
 
-                // Giới hạn để thanh không nhảy tràn bờ
                 leftPercent = Math.min(95, Math.max(0, leftPercent));
                 widthPercent = Math.min(100 - leftPercent, widthPercent);
 
+                // Yêu cầu 5: Đồng bộ tỉ lệ col-span mới cho Gantt Row (col-span-2 cho text, col-span-8 cho timeline)
                 rowDiv.innerHTML = `
-                    <div class="col-span-3 border-r border-slate-200 pr-2">
-                        <div class="font-bold text-slate-800">${item.poNo}</div>
-                        <div class="text-[9px] text-slate-400">Booking: ${item.bookingNo} (${item.type})</div>
+                    <div class="col-span-2 border-r border-slate-200 pr-2">
+                        <div class="font-bold text-slate-800 truncate" title="${item.poNo}">${item.poNo}</div>
+                        <div class="text-[9px] text-slate-400 truncate">Booking: ${item.bookingNo} (${item.type})</div>
                     </div>
                     <div class="col-span-1 text-center border-r border-slate-200 text-slate-600 font-semibold">${formatDate(item.dateStuffing)}</div>
                     <div class="col-span-1 text-center border-r border-slate-200 text-blue-700 font-bold">${formatDate(item.etd)}</div>
-                    <div class="col-span-7 px-2 relative py-3 bg-slate-50/50 rounded">
-                        <!-- Đường lưới đứng tượng trưng ngày hôm nay 21-May -->
-                        <div class="absolute top-0 bottom-0 w-0.5 bg-green-500/70 z-10" style="left: ${((new Date("2026-05-21") - startDate) / (1000 * 60 * 60 * 24) / totalDays) * 100}%" title="Hôm nay 21-May">
-                            <span class="absolute -top-3 left-1 bg-green-600 text-white rounded px-1 text-[7px]">21-May</span>
+                    <div class="col-span-8 px-2 relative py-3 bg-slate-50/50 rounded">
+                        <div class="absolute top-0 bottom-0 w-0.5 bg-green-500/70 z-10" style="left: ${((new Date("2026-05-22") - startDate) / (1000 * 60 * 60 * 24) / totalDays) * 100}%" title="Hôm nay 22-May">
+                            <span class="absolute -top-3 left-1 bg-green-600 text-white rounded px-1 text-[7px] whitespace-nowrap">22-May</span>
                         </div>
-                        
-                        <!-- Thanh Gantt chính nối từ Stuffing đến ETD -->
                         <div class="h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-inner relative flex items-center justify-center text-[8px] text-white font-bold" 
                              style="margin-left: ${leftPercent}%; width: ${widthPercent}%; min-width: 25px;"
                              title="Từ Stuffing (${formatDate(item.dateStuffing)}) đến ETD (${formatDate(item.etd)})">
@@ -867,7 +909,7 @@
             });
         }
 
-        // Lưu dữ liệu vào Local Storage và vẽ lại bảng
+        // Lưu dữ liệu vào Local Storage
         function saveData() {
             localStorage.setItem('export_plan_data', JSON.stringify(dbData));
             renderData();
@@ -895,7 +937,6 @@
             const editId = editIdInput.value;
 
             if (editId) {
-                // Chế độ CẬP NHẬT thông tin
                 const index = dbData.findIndex(item => item.id === editId);
                 if (index !== -1) {
                     dbData[index] = {
@@ -905,14 +946,13 @@
                     showToast("Cập nhật thông tin lô hàng thành công!");
                 }
             } else {
-                // Chế độ THÊM MỚI hoàn toàn
                 const newRecord = {
                     id: 'ID-' + Date.now(),
                     poNo, type, packaging, qtyCont, bookingNo, vesselVoy, dropOff, dateStuffing, etd, cutOff, soToKhai, phanLuong, tkhq, ghiChu,
-                    enteredVessel: false, // Mặc định chưa vào sổ tàu
+                    enteredVessel: false,
                     createdAt: new Date().toISOString()
                 };
-                dbData.unshift(newRecord); // Đưa lên đầu danh sách
+                dbData.unshift(newRecord);
                 showToast("Đã lưu mới lô hàng thành công!");
             }
 
@@ -920,7 +960,7 @@
             resetForm();
         });
 
-        // Đưa dữ liệu một lô hàng cụ thể lên form để sửa đổi
+        // Sửa bản ghi
         function editRecord(id) {
             const record = dbData.find(item => item.id === id);
             if (!record) return;
@@ -941,15 +981,13 @@
             document.getElementById('tkhq').value = record.tkhq;
             document.getElementById('ghi-chu').value = record.ghiChu || '';
 
-            // Thay đổi giao diện nút bấm
             submitText.innerText = "LƯU SỰ THAY ĐỔI LÔ HÀNG";
             btnCancel.classList.remove('hidden');
 
-            // Cuộn mượt mà lên vị trí Form nhập liệu
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Hàm xóa dữ liệu lô hàng
+        // Xóa bản ghi
         function deleteRecord(id) {
             showConfirmModal(
                 "Xác nhận xóa lô hàng", 
@@ -962,7 +1000,7 @@
             );
         }
 
-        // Đưa form về trạng thái trống ban đầu
+        // Reset form nhập liệu
         function resetForm() {
             form.reset();
             editIdInput.value = '';
@@ -970,11 +1008,12 @@
             btnCancel.classList.add('hidden');
         }
 
-        // Lọc tìm kiếm dữ liệu theo ký tự gõ
+        // Bộ lọc dữ liệu đa năng
         function filterData() {
             const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
             const filterType = document.getElementById('filter-type').value;
             const filterTkhq = document.getElementById('filter-tkhq').value;
+            const filterMonth = document.getElementById('filter-month').value; // Định dạng YYYY-MM
 
             const filtered = dbData.filter(item => {
                 const matchesSearch = item.poNo.toLowerCase().includes(searchVal) ||
@@ -986,13 +1025,22 @@
                 const matchesType = filterType === 'ALL' || item.type === filterType;
                 const matchesTkhq = filterTkhq === 'ALL' || item.tkhq === filterTkhq;
 
-                return matchesSearch && matchesType && matchesTkhq;
+                // Lọc theo Tháng-Năm dựa vào Stuffing Date hoặc ETD
+                let matchesMonth = true;
+                if (filterMonth) {
+                    const targetMonth = filterMonth;
+                    const stuffingMonth = item.dateStuffing ? item.dateStuffing.substring(0, 7) : "";
+                    const etdMonth = item.etd ? item.etd.substring(0, 7) : "";
+                    matchesMonth = (stuffingMonth === targetMonth || etdMonth === targetMonth);
+                }
+
+                return matchesSearch && matchesType && matchesTkhq && matchesMonth;
             });
 
             renderData(filtered);
         }
 
-        // Cuộn mượt xuống phần biểu đồ thống kê
+        // Cuộn xuống biểu đồ
         function scrollToChart() {
             const el = document.getElementById('chart-section');
             if (el) {
@@ -1000,9 +1048,19 @@
             }
         }
 
-        // Vẽ và cập nhật Biểu đồ trực quan (Chart.js)
+        // Helper: Tính ngày thứ 2 trong tuần của một ngày bất kỳ
+        function getMondayOfWeek(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Lấy thứ 2
+            return new Date(date.setDate(diff));
+        }
+
+        // Vẽ và cập nhật Biểu đồ trực quan
         function updateCharts() {
-            // 1. DỮ LIỆU BIỂU ĐỒ TRÒN (TỶ TRỌNG SẢN PHẨM TYPE)
+            // =========================================================
+            // 1. BIỂU ĐỒ TRÒN (TỶ TRỌNG SẢN PHẨM TYPE)
+            // =========================================================
             const typeCounts = {};
             dbData.forEach(item => {
                 typeCounts[item.type] = (typeCounts[item.type] || 0) + parseInt(item.qtyCont || 0);
@@ -1010,6 +1068,19 @@
 
             const pieCtx = document.getElementById('pieChart').getContext('2d');
             if (pieChartInstance) pieChartInstance.destroy();
+
+            // Lựa chọn Palette màu có độ tương phản cao rõ rệt
+            const highContrastColors = [
+                '#2563EB', // Xanh dương đậm
+                '#EF4444', // Đỏ tươi
+                '#10B981', // Xanh lục bảo
+                '#F59E0B', // Vàng cam ấm
+                '#8B5CF6', // Tím hoa cà
+                '#EC4899', // Hồng đậm cánh sen
+                '#14B8A6', // Xanh mòng két (Teal)
+                '#FF6B6B', // Đỏ san hô nhạt
+                '#6366F1'  // Xanh chàm (Indigo)
+            ];
             
             pieChartInstance = new Chart(pieCtx, {
                 type: 'doughnut',
@@ -1017,7 +1088,7 @@
                     labels: Object.keys(typeCounts),
                     datasets: [{
                         data: Object.values(typeCounts),
-                        backgroundColor: ['#2563eb', '#f59e0b', '#8b5cf6', '#10b981', '#3b82f6', '#ec4899', '#f43f5e', '#6366f1'],
+                        backgroundColor: highContrastColors.slice(0, Object.keys(typeCounts).length),
                         borderWidth: 2,
                         borderColor: '#ffffff'
                     }]
@@ -1026,23 +1097,81 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 } } }
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 } } },
+                        // Hiển thị danh sách PO cụ thể khi rê chuột
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    // Lọc tất cả PO thuộc dòng sản phẩm này
+                                    const posList = dbData
+                                        .filter(item => item.type === label)
+                                        .map(item => `${item.poNo} (${item.qtyCont}c)`)
+                                        .join(', ');
+                                    return [
+                                        ` Loại sản phẩm: ${label}`,
+                                        ` Tổng số lượng: ${value} Container(s)`,
+                                        ` Danh sách PO: ${posList || 'Không có'}`
+                                    ];
+                                }
+                            }
+                        }
                     }
                 }
             });
 
-            // 2. DỮ LIỆU BIỂU ĐỒ CỘT (SỐ LƯỢNG CONT THEO NGÀY ĐÓNG HÀNG)
-            const contByDate = {};
-            const sortedData = [...dbData].sort((a, b) => new Date(a.dateStuffing) - new Date(b.dateStuffing));
-            sortedData.forEach(item => {
-                if (item.dateStuffing) {
-                    const formatedDate = formatDate(item.dateStuffing);
-                    contByDate[formatedDate] = (contByDate[formatedDate] || 0) + parseInt(item.qtyCont || 0);
-                }
-            });
+            // =========================================================
+            // 2. BIỂU ĐỒ CỘT (7 NGÀY TRONG TUẦN - THỨ 2 ĐẦU TUẦN)
+            // =========================================================
+            // Lấy ngày thứ 2 trong tuần hiện tại dựa trên systemCurrentTime (22-May-2026)
+            const mondayOfWeek = getMondayOfWeek(systemCurrentTime);
+            
+            // Khởi tạo mảng 7 ngày từ thứ 2 đến chủ nhật của tuần này
+            const daysOfWeekList = [];
+            const labelsList = [];
+            const weeklyDetails = []; // Lưu trữ chi tiết thông tin cho Tooltip
 
-            const dateLabels = Object.keys(contByDate).slice(-10);
-            const dateValues = Object.values(contByDate).slice(-10);
+            const weekdayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
+
+            for (let i = 0; i < 7; i++) {
+                const currentDay = new Date(mondayOfWeek);
+                currentDay.setDate(mondayOfWeek.getDate() + i);
+                
+                // Định dạng YYYY-MM-DD để khớp với DB
+                const yyyy = currentDay.getFullYear();
+                const mm = String(currentDay.getMonth() + 1).padStart(2, '0');
+                const dd = String(currentDay.getDate()).padStart(2, '0');
+                const formattedKey = `${yyyy}-${mm}-${dd}`;
+                
+                daysOfWeekList.push(formattedKey);
+                labelsList.push(`${weekdayNames[i]} (${dd}/${mm})`);
+
+                // Tính toán thông tin sản lượng
+                let stuffingTotal = 0;
+                let enteredTotal = 0;
+                let remainingTotal = 0;
+
+                dbData.forEach(item => {
+                    if (item.dateStuffing === formattedKey) {
+                        const qty = parseInt(item.qtyCont || 0);
+                        stuffingTotal += qty;
+                        if (item.enteredVessel) {
+                            enteredTotal += qty;
+                        } else {
+                            remainingTotal += qty;
+                        }
+                    }
+                });
+
+                weeklyDetails.push({
+                    total: stuffingTotal,
+                    entered: enteredTotal,
+                    remaining: remainingTotal
+                });
+            }
+
+            weeklyDetailsArray = weeklyDetails; // Gán ra biến toàn cục để Tooltip sử dụng
 
             const barCtx = document.getElementById('barChart').getContext('2d');
             if (barChartInstance) barChartInstance.destroy();
@@ -1050,13 +1179,16 @@
             barChartInstance = new Chart(barCtx, {
                 type: 'bar',
                 data: {
-                    labels: dateLabels,
+                    labels: labelsList,
                     datasets: [{
                         label: 'Số lượng Container đóng (Stuffing)',
-                        data: dateValues,
-                        backgroundColor: '#3b82f6',
+                        data: weeklyDetails.map(d => d.total),
+                        backgroundColor: '#2563EB',
                         borderRadius: 6,
-                        borderWidth: 0
+                        borderWidth: 0,
+                        // Cột thon gọn, trực quan, chuyên nghiệp hơn
+                        maxBarThickness: 32,
+                        barPercentage: 0.4
                     }]
                 },
                 options: {
@@ -1071,35 +1203,47 @@
                         x: { ticks: { font: { size: 9 } }, grid: { display: false } }
                     },
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        // Cấu hình hiển thị tooltip đặc biệt khi rê chuột
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const info = weeklyDetailsArray[index];
+                                    return [
+                                        ` Số container đã đóng: ${info.total} Cont`,
+                                        ` Đã vào sổ tàu: ${info.entered} Cont`,
+                                        ` Còn lại chưa vào sổ: ${info.remaining} Cont`
+                                    ];
+                                }
+                            }
+                        }
                     }
                 }
             });
         }
 
-        // KẾT XUẤT EXPORT PLAN CHUYÊN NGHIỆP THEO ĐÚNG TRÌNH BÀY EXCEL CỦA ANH
+        // Xuất file Excel
         function exportToExcel() {
             if (dbData.length === 0) {
                 showToast("Không có dữ liệu để xuất!", "error");
                 return;
             }
 
-            // Tính toán thống kê hàng đầu
             const totalPo = dbData.length;
             const totalCont = dbData.reduce((sum, item) => sum + parseInt(item.qtyCont || 0), 0);
             const totalCleared = dbData.filter(item => item.tkhq === "Đã thông quan").length;
             const notCleared = totalPo - totalCleared;
             const totalCostValue = totalCont * 30000;
 
-            // Xây dựng Header thông tin tổng quan giống thiết kế góc phải trong ảnh của anh
             const rawData = [
-                ["THEO DÕI TIẾN ĐỘ XUẤT HÀNG", "", "", "", "", "", "THỜI GIAN IN:", "21-May-26 22:44"],
+                ["THEO DÕI TIẾN ĐỘ XUẤT HÀNG", "", "", "", "", "", "THỜI GIAN IN:", "22-May-26 11:27"],
                 ["", "", "", "", "", "", "TỔNG SỐ PO:", totalPo],
                 ["", "", "", "", "", "", "TỔNG CONTAINER:", totalCont],
                 ["", "", "", "", "", "", "ĐÃ THÔNG QUAN:", totalCleared],
                 ["", "", "", "", "", "", "CHƯA THÔNG QUAN:", notCleared],
                 ["", "", "", "", "", "", "TỔNG CHI PHÍ THỦ TỤC:", `${totalCostValue.toLocaleString('vi-VN')} VNĐ`],
-                [], // Hàng trống giãn cách
+                [],
                 [
                     "STT", 
                     "CONTRACT / PO NO", 
@@ -1120,7 +1264,6 @@
                 ]
             ];
 
-            // Thêm từng lô hàng từ Database vào mảng Excel
             dbData.forEach((item, idx) => {
                 let phanLuongStr = "Xanh";
                 if (item.phanLuong === "2") phanLuongStr = "Vàng";
@@ -1146,15 +1289,11 @@
                 ]);
             });
 
-            // Tạo Worksheet từ dữ liệu thô
             const worksheet = XLSX.utils.aoa_to_sheet(rawData);
-
-            // Gộp các ô tiêu đề lớn đẹp mắt
             worksheet['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Gộp tiêu đề "THEO DÕI TIẾN ĐỘ..."
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }
             ];
 
-            // Thiết lập độ rộng chuẩn hóa cho các cột Excel
             const colWidths = [
                 { wch: 6 },   // STT
                 { wch: 18 },  // CONTRACT
@@ -1175,17 +1314,16 @@
             ];
             worksheet['!cols'] = colWidths;
 
-            // Thiết lập Workbook mới
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Plan & Gantt Summary");
             
-            const fileName = `Export_Plan_04-2026.xlsx`;
+            const fileName = `Export_Plan_05-2026.xlsx`;
             XLSX.writeFile(workbook, fileName);
 
             showToast("Đã trích xuất dữ liệu ra file Excel thành công!");
         }
 
-        // Tải dữ liệu mẫu ban đầu bám sát hình ảnh chụp thực tế của anh
+        // Tải dữ liệu mẫu ban đầu bám sát hình ảnh thực tế
         function loadDemoData() {
             if (dbData.length === 0) {
                 dbData = [
@@ -1202,7 +1340,7 @@
                         etd: "2026-05-22",
                         cutOff: "2026-05-21T01:00",
                         soToKhai: "300412356501",
-                        phanLuong: "1", // Luồng Xanh
+                        phanLuong: "1",
                         tkhq: "Đã thông quan",
                         enteredVessel: true,
                         ghiChu: "Lấy 2 cont của Phước Sơn chuyển qua"
@@ -1218,9 +1356,9 @@
                         dropOff: "Cảng Cát Lái",
                         dateStuffing: "2026-05-20",
                         etd: "2026-05-23",
-                        cutOff: "2026-05-22T08:00", // < 48h so với 21-May 22:44
+                        cutOff: "2026-05-22T08:00",
                         soToKhai: "300412569800",
-                        phanLuong: "2", // Luồng Vàng
+                        phanLuong: "2",
                         tkhq: "Đang làm thủ tục",
                         enteredVessel: false,
                         ghiChu: "Xin hạ bãi muộn trước 12h"
@@ -1236,9 +1374,9 @@
                         dropOff: "Cảng Cái Mép",
                         dateStuffing: "2026-05-21",
                         etd: "2026-05-24",
-                        cutOff: "2026-05-23T08:00", // < 48h so với 21-May 22:44
+                        cutOff: "2026-05-23T08:00",
                         soToKhai: "300456123000",
-                        phanLuong: "3", // Luồng Đỏ
+                        phanLuong: "3",
                         tkhq: "Chưa thông quan",
                         enteredVessel: false,
                         ghiChu: "Gấp! Cần bám sát hải quan hạ bãi"
@@ -1248,12 +1386,11 @@
             }
         }
 
-
         /* ==========================================
            LOGIC TRỢ LÝ AI & CO GIÃN CỬA SỔ CHAT
            ========================================== */
 
-        // Xử lý cơ chế kéo co giãn (resize-handle) cho cửa sổ chat AI
+        // Xử lý cơ chế kéo co giãn cho cửa sổ chat AI
         const resizeHandle = document.getElementById('resize-handle');
         const aiChatColumn = document.getElementById('ai-chat-column');
         const mainContentColumn = document.getElementById('main-content-column');
@@ -1268,14 +1405,10 @@
 
         document.addEventListener('mousemove', function(e) {
             if (!isResizing) return;
-            
             const windowWidth = window.innerWidth;
             const rightOffset = windowWidth - e.clientX;
-            
-            // Thiết lập giới hạn kích thước kéo rộng từ 250px đến 700px
             const newWidth = Math.max(250, Math.min(700, rightOffset));
             
-            // Chuyển cấu trúc cột của Chat AI từ col-span sang kích thước pixel tĩnh khi đang thực hiện kéo
             aiChatColumn.style.width = `${newWidth}px`;
             aiChatColumn.classList.remove('xl:col-span-3');
             aiChatColumn.style.flex = 'none';
@@ -1289,27 +1422,45 @@
             }
         });
 
-        // Hàm gọi API mới: Gọi về server của chính bạn (/api/gemini)
-async function callGemini(prompt, systemInstruction = "") {
-    // Chỉ cần gọi về server Vercel của bạn, không cần gọi Google
-    const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            prompt: prompt, 
-            systemInstruction: systemInstruction 
-        })
-    });
+        // Hàm gọi API của Gemini sử dụng exponential backoff
+        async function callGemini(prompt, systemInstruction = "") {
+            const apiKey = userGeminiApiKey;
+            if (!apiKey) {
+                throw new Error("Vui lòng cấu hình khóa API Gemini của anh ở góc trên bảng chat để tiếp tục tác vụ AI!");
+            }
 
-    if (!response.ok) {
-        // Nếu lỗi, hiện thông báo lỗi để bạn biết
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Lỗi máy chủ Vercel");
-    }
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
 
-    const data = await response.json();
-    return data.text;
-}
+            let retries = 5;
+            let delay = 1000;
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) return text;
+                        throw new Error("Không thể trích xuất nội dung từ phản hồi của AI.");
+                    }
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                }
+                await new Promise(res => setTimeout(res, delay));
+                delay *= 2;
+            }
+            throw new Error("Kết nối đến Gemini thất bại sau nhiều lần thử.");
+        }
 
         // Mở Modal AI hiển thị phản hồi
         function openAIModal(title, content) {
@@ -1322,7 +1473,6 @@ async function callGemini(prompt, systemInstruction = "") {
             document.getElementById('ai-modal').classList.add('hidden');
         }
 
-        // Sao chép nội dung AI
         function copyAIConsult() {
             const content = document.getElementById('ai-modal-content').innerText;
             const el = document.createElement('textarea');
@@ -1334,7 +1484,7 @@ async function callGemini(prompt, systemInstruction = "") {
             showToast("Đã sao chép nội dung vào khay nhớ tạm!");
         }
 
-        // TÍNH NĂNG 1: ✨ AI PHÂN TÍCH RỦI RO LÔ HÀNG CHI TIẾT
+        // ✨ AI PHÂN TÍCH RỦI RO LÔ HÀNG CHI TIẾT
         async function analyzeRiskWithAI(id) {
             const record = dbData.find(item => item.id === id);
             if (!record) return;
@@ -1362,7 +1512,7 @@ async function callGemini(prompt, systemInstruction = "") {
             2. Cho biết lưu ý đặc thù về quy cách đóng gói (${record.packaging}) và dòng sản phẩm (${record.type}) này khi vận chuyển.
             3. 3 đầu việc anh cần chỉ đạo hiện trường giải quyết nhanh để tránh bị rớt tàu (Roll tàu).`;
 
-            const systemInstruction = "Bạn là chuyên gia cố vấn chuỗi cung ứng logistics cao cấp cho doanh nghiệp xuất khẩu cao su. Hãy trả lời cực kỳ thẳng thắn, ngắn gọn, có gạch đầu dòng rõ ràng, giải pháp thực tế.";
+            const systemInstruction = "Bạn là chuyên gia cố vấn chuỗi cung ứng logistics cao cấp cho doanh nghiệp xuất khẩu cao su. Hãy trả lời cực kỳ thẳng nhắn, ngắn gọn, có gạch đầu dòng rõ ràng, giải pháp thực tế.";
 
             try {
                 const aiResponse = await callGemini(prompt, systemInstruction);
@@ -1372,7 +1522,7 @@ async function callGemini(prompt, systemInstruction = "") {
             }
         }
 
-        // TÍNH NĂNG 2: ✨ AI TỰ ĐỘNG SOẠN THẢO EMAIL GỬI KHÁCH HÀNG (SHIPPING ADVICE)
+        // ✨ AI TỰ ĐỘNG SOẠN THẢO EMAIL GỬI KHÁCH HÀNG (SHIPPING ADVICE)
         async function generateEmailWithAI(id) {
             const record = dbData.find(item => item.id === id);
             if (!record) return;
@@ -1403,7 +1553,7 @@ async function callGemini(prompt, systemInstruction = "") {
             }
         }
 
-        // TÍNH NĂNG 3: KHUNG CHATBOT LOGISTICS TRỰC TUYẾN
+        // KHUNG CHATBOT LOGISTICS TRỰC TUYẾN
         const chatMessages = document.getElementById('chat-messages');
 
         function appendMessage(sender, text, isAi = false) {
@@ -1442,7 +1592,6 @@ async function callGemini(prompt, systemInstruction = "") {
             appendMessage('user', messageText, false);
             if (!customText) chatInput.value = '';
 
-            // Loading state của chatbot
             const loadingId = 'ai-loading-' + Date.now();
             const loadingDiv = document.createElement('div');
             loadingDiv.id = loadingId;
@@ -1458,7 +1607,6 @@ async function callGemini(prompt, systemInstruction = "") {
             chatMessages.appendChild(loadingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
-            // Tổng hợp toàn bộ danh sách kế hoạch hiện tại để AI hiểu ngữ cảnh dữ liệu
             const contextDataString = dbData.map(item => 
                 `PO: ${item.poNo}, Loại: ${item.type}, Qty: ${item.qtyCont} cont, Booking: ${item.bookingNo}, ETD: ${item.etd || 'Chưa rõ'}, Cut-off: ${item.cutOff || 'Chưa rõ'}, Tờ khai: ${item.soToKhai || 'Chưa có'} (Luồng ${item.phanLuong}), TKHQ: ${item.tkhq}, Sổ tàu: ${item.enteredVessel ? "Đã vào" : "Chưa"}`
             ).join('\n');
@@ -1480,19 +1628,17 @@ async function callGemini(prompt, systemInstruction = "") {
             }
         }
 
-        // Bấm nút gợi ý nhanh trong chatbox
         function sendQuickPrompt(promptText) {
             sendChatMessage(promptText);
         }
 
-        // Nhấn Enter trong ô Chat
+        // Nhận phím Enter từ bàn phím trong cửa sổ Chat
         function handleChatKeyPress(event) {
             if (event.key === 'Enter') {
                 sendChatMessage();
             }
         }
 
-        // Xóa lịch sử chatbox
         function clearAIChat() {
             chatMessages.innerHTML = `
                 <div class="flex items-start space-x-2">
@@ -1506,10 +1652,56 @@ async function callGemini(prompt, systemInstruction = "") {
             `;
         }
 
+        // TÍNH NĂNG CHỈNH SỬA KÍCH THƯỚC CỘT BẰNG CHUỘT
+        function initResizableColumns() {
+            const tables = document.querySelectorAll('table');
+            tables.forEach(table => {
+                const cols = table.querySelectorAll('th');
+                cols.forEach(col => {
+                    const resizer = col.querySelector('.resizer');
+                    if (!resizer) return;
+
+                    let startX, startWidth;
+
+                    resizer.addEventListener('mousedown', (e) => {
+                        startX = e.pageX;
+                        startWidth = col.offsetWidth;
+                        resizer.classList.add('resizing');
+                        
+                        document.addEventListener('mousemove', handleMouseMove);
+                        document.addEventListener('mouseup', handleMouseUp);
+                        e.preventDefault();
+                    });
+
+                    function handleMouseMove(e) {
+                        const width = startWidth + (e.pageX - startX);
+                        // Không được phép thu nhỏ cột đến mức mất nội dung (giới hạn tối thiểu là 80px)
+                        if (width > 80) { 
+                            col.style.width = width + 'px';
+                        }
+                    }
+
+                    function handleMouseUp() {
+                        resizer.classList.remove('resizing');
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                    }
+                });
+            });
+        }
+
         // Khởi động trang web
         window.onload = function() {
-            loadDemoData(); // Nạp mẫu demo nếu cần
-            renderData();   // Hiển thị ra bảng
+            loadDemoData();
+            renderData();
+            initResizableColumns(); // Khởi tạo tính năng kéo thả cột
+            
+            // Nếu có API Key lưu sẵn, tự động nạp
+            const savedKey = localStorage.getItem('user_gemini_api_key');
+            if (savedKey) {
+                userGeminiApiKey = savedKey;
+                document.getElementById('user-api-key').value = savedKey;
+            }
         };
     </script>
 </body>
