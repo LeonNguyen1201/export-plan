@@ -1715,10 +1715,20 @@
             [data-theme="dark"] #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
                 background: transparent !important;
             }
-            /* Bar chính của timeline — kéo to & rộng hơn nữa cho dễ nhìn trên mobile */
+            /* Bar chính của timeline — KÉO ĐẦY chiều ngang card (mobile & iPad-dọc).
+               Lý do: global timeline (tính trên cả 256 lô pending) khiến % width mỗi bar nhỏ
+               → bar lệch trái, chừa khoảng trống lớn bên phải. Trên card dọc mỗi lô đứng riêng
+               → bar nên trải đều hết card. Số ngày (4d, 5d…) ở badge bên phải vẫn cho biết duration. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 height: 22px !important;
+                margin-left: 0 !important;
+                width: 100% !important;
                 min-width: 0 !important;
+            }
+            /* Ẩn vạch "hôm nay" trên bar (vì bar đã full-width, marker theo % global sẽ sai vị trí).
+               Ngày Đóng hàng / ETD đã in rõ trên card → không mất thông tin. */
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
+                display: none !important;
             }
             /* Khu cuộn ngoài — bỏ luôn padding để bar dài bằng đúng card "Sơ Đồ Gantt" */
             #gantt-rows-container {
@@ -2215,9 +2225,41 @@
         [data-theme="dark"] #toast { box-shadow: var(--shadow-lg) !important; }
 
         /* Export plan modal */
-        [data-theme="dark"] #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
+        /* (Mục 1) Modal cần nền ĐỤC để chữ rõ — KHÔNG dùng glass trong suốt như card. */
+        #export-plan-modal > div {
+            background: #ffffff !important;
+            border-color: rgba(15,23,42,0.12) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        #export-plan-modal label.flex {
+            background: #f8fafc !important;
+            border-color: rgba(15,23,42,0.12) !important;
+        }
+        #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
+        #export-plan-modal .px-5.py-4[style*="bg-card-alt"],
+        #export-plan-modal > div > div:last-child {
+            background: #f8fafc !important;
+        }
+        #export-plan-modal #ep-preview { background: #eff6ff !important; border-color: #bfdbfe !important; }
+        [data-theme="dark"] #export-plan-modal > div {
+            background: #1e2233 !important;
+            border-color: rgba(255,255,255,0.10) !important;
+        }
+        [data-theme="dark"] #export-plan-modal label.flex { background: rgba(255,255,255,0.04) !important; border-color: var(--border) !important; }
         [data-theme="dark"] #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
-        [data-theme="dark"] #ep-preview { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
+        [data-theme="dark"] #export-plan-modal > div > div:last-child { background: rgba(255,255,255,0.03) !important; }
+        [data-theme="dark"] #ep-preview { background: rgba(59,130,246,0.12) !important; border-color: rgba(59,130,246,0.3) !important; }
+
+        /* (Mục 1) Modal Customs/Import — cũng cần nền đục để chữ rõ */
+        #cs-import-modal > div {
+            background: #ffffff !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        }
+        [data-theme="dark"] #cs-import-modal > div {
+            background: #1e2233 !important;
+            border-color: rgba(255,255,255,0.10) !important;
+        }
 
         /* Checkbox accent */
         input[type="checkbox"] { accent-color: #3b82f6; }
