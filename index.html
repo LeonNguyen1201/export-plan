@@ -1616,17 +1616,19 @@
             }
 
             /* (Mục 3) Mỗi dòng lô — bỏ HOÀN TOÀN khung hộp bao ngoài, chỉ ngăn cách bằng vạch mảnh.
-               Bố cục vẫn dùng grid-template-areas để 2 ngày nằm cùng hàng. */
+               (Mục 2) Timeline được kéo LÊN nằm CÙNG HÀNG với ngày Đóng hàng/ETD — lấp khoảng trống bên phải,
+               ngang hàng với thông tin lô (đúng vị trí mũi tên đỏ). */
             #gantt-rows-container > .grid.grid-cols-12 {
                 display: grid !important;
                 grid-template-columns: auto 1fr !important;
                 grid-template-areas:
                     "po       po"
-                    "stuff    etd"
-                    "timeline timeline" !important;
+                    "stuff    timeline"
+                    "etd      timeline" !important;
                 column-gap: 14px !important;
-                row-gap: 7px !important;
+                row-gap: 4px !important;
                 padding: 10px 4px !important;
+                align-items: center !important;
                 /* KHÔNG còn card frame — chỉ có 1 đường mảnh phân cách giữa các lô */
                 border: none !important;
                 background: transparent !important;
@@ -1701,32 +1703,30 @@
                 letter-spacing: 0.04em;
             }
 
-            /* Con 4 — Timeline : full ngang, KHÔNG còn nền xám phía dưới */
+            /* Con 4 — Timeline : nằm cùng hàng với ngày (grid-area: timeline), căn giữa dọc */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
-                display: block !important;
+                display: flex !important;
+                align-items: center !important;
                 width: 100% !important;
-                padding: 4px 0 2px !important;
-                margin-top: 1px;
+                padding: 0 0 0 4px !important;
+                margin-top: 0;
                 background: transparent !important;
                 border-radius: 0;
                 position: relative;
-                min-height: 28px;
+                min-height: 44px;
             }
             [data-theme="dark"] #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
                 background: transparent !important;
             }
-            /* Bar chính của timeline — KÉO ĐẦY chiều ngang card (mobile & iPad-dọc).
-               Lý do: global timeline (tính trên cả 256 lô pending) khiến % width mỗi bar nhỏ
-               → bar lệch trái, chừa khoảng trống lớn bên phải. Trên card dọc mỗi lô đứng riêng
-               → bar nên trải đều hết card. Số ngày (4d, 5d…) ở badge bên phải vẫn cho biết duration. */
+            /* Bar chính — KÉO ĐẦY chiều ngang vùng timeline (lấp khoảng trống bên phải, ngang lô) */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 height: 22px !important;
                 margin-left: 0 !important;
                 width: 100% !important;
                 min-width: 0 !important;
             }
-            /* Ẩn vạch "hôm nay" trên bar (vì bar đã full-width, marker theo % global sẽ sai vị trí).
-               Ngày Đóng hàng / ETD đã in rõ trên card → không mất thông tin. */
+            /* Ẩn vạch "hôm nay" trên bar (bar full-width → marker theo % global sẽ sai vị trí;
+               ngày Đóng hàng/ETD đã in rõ bên trái). */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
                 display: none !important;
             }
@@ -2225,41 +2225,30 @@
         [data-theme="dark"] #toast { box-shadow: var(--shadow-lg) !important; }
 
         /* Export plan modal */
-        /* (Mục 1) Modal cần nền ĐỤC để chữ rõ — KHÔNG dùng glass trong suốt như card. */
-        #export-plan-modal > div {
-            background: #ffffff !important;
-            border-color: rgba(15,23,42,0.12) !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-        #export-plan-modal label.flex {
-            background: #f8fafc !important;
-            border-color: rgba(15,23,42,0.12) !important;
-        }
+        /* (Mục 1) GIỮ Liquid Glass cho modal — chỉ TĂNG TƯƠNG PHẢN chữ:
+           nền sáng → chữ đậm gần đen; nền tối → chữ sáng gần trắng. */
+        #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
         #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
-        #export-plan-modal .px-5.py-4[style*="bg-card-alt"],
-        #export-plan-modal > div > div:last-child {
-            background: #f8fafc !important;
-        }
-        #export-plan-modal #ep-preview { background: #eff6ff !important; border-color: #bfdbfe !important; }
-        [data-theme="dark"] #export-plan-modal > div {
-            background: #1e2233 !important;
-            border-color: rgba(255,255,255,0.10) !important;
-        }
-        [data-theme="dark"] #export-plan-modal label.flex { background: rgba(255,255,255,0.04) !important; border-color: var(--border) !important; }
+        /* Chữ trong modal — ép tương phản cao (light) */
+        #export-plan-modal [style*="--text-primary"]   { color: #0f172a !important; }
+        #export-plan-modal [style*="--text-secondary"] { color: #1e293b !important; }
+        #export-plan-modal [style*="--text-muted"]     { color: #475569 !important; }
+        #export-plan-modal p.text-xs                    { color: #1e293b !important; }
+        /* Dark mode — chữ sáng */
+        [data-theme="dark"] #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
         [data-theme="dark"] #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
-        [data-theme="dark"] #export-plan-modal > div > div:last-child { background: rgba(255,255,255,0.03) !important; }
-        [data-theme="dark"] #ep-preview { background: rgba(59,130,246,0.12) !important; border-color: rgba(59,130,246,0.3) !important; }
-
-        /* (Mục 1) Modal Customs/Import — cũng cần nền đục để chữ rõ */
-        #cs-import-modal > div {
-            background: #ffffff !important;
-            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-        }
-        [data-theme="dark"] #cs-import-modal > div {
-            background: #1e2233 !important;
-            border-color: rgba(255,255,255,0.10) !important;
-        }
+        [data-theme="dark"] #ep-preview { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
+        [data-theme="dark"] #export-plan-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
+        [data-theme="dark"] #export-plan-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
+        [data-theme="dark"] #export-plan-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
+        [data-theme="dark"] #export-plan-modal p.text-xs                    { color: #e2e8f0 !important; }
+        /* Customs/Import modal — cùng nguyên tắc tương phản */
+        #cs-import-modal [style*="--text-primary"]   { color: #0f172a !important; }
+        #cs-import-modal [style*="--text-secondary"] { color: #1e293b !important; }
+        #cs-import-modal [style*="--text-muted"]     { color: #475569 !important; }
+        [data-theme="dark"] #cs-import-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
+        [data-theme="dark"] #cs-import-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
+        [data-theme="dark"] #cs-import-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
 
         /* Checkbox accent */
         input[type="checkbox"] { accent-color: #3b82f6; }
