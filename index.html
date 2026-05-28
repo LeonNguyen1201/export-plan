@@ -1537,13 +1537,22 @@
         .kpi-dot-yellow { background: #f59e0b; }
         .kpi-dot-red    { background: #ef4444; }
 
-        /* (Mục 4 — iPad fix) Thiết bị cảm ứng (iPad/iPhone) KHÔNG có :hover thật → tắt cơ chế lật,
-           dữ liệu mặt sau không còn tràn ra ngoài thẻ. */
+        /* (Mục 4 — iPad/iPhone) Thiết bị cảm ứng KHÔNG có :hover thật.
+           → Dùng cơ chế TAP-TO-TOGGLE: chạm vào thẻ KPI sẽ thêm class .flipped (JS xử lý),
+             chạm lần nữa để lật về. Dữ liệu mặt sau vẫn hiển thị, KHÔNG bị tràn ra ngoài. */
         @media (hover: none), (pointer: coarse) {
+            /* vô hiệu hover (ngón tay "dính" hover ảo trên iOS) */
             .kpi-flip:hover .kpi-front { opacity: 1; transform: translateY(0); }
             .kpi-flip:hover .kpi-back  { opacity: 0; transform: translateY(8px); }
-            .kpi-flip:hover { transform: none; box-shadow: var(--shadow-sm); border-color: var(--border); }
-            .kpi-back { display: none !important; }
+            .kpi-flip:hover { transform: none; }
+            /* trạng thái lật bằng tap */
+            .kpi-flip.flipped .kpi-front { opacity: 0; transform: translateY(-8px); }
+            .kpi-flip.flipped .kpi-back  { opacity: 1; transform: translateY(0); }
+            .kpi-flip.flipped {
+                border-color: var(--border-strong);
+                box-shadow: 0 8px 24px -8px rgba(37,99,235,0.25);
+            }
+            .kpi-flip { cursor: pointer; }
         }
 
         /* ══════════════════════════════════════════
@@ -2054,6 +2063,45 @@
             .ql-tool i { font-size: 13px; }
             /* Header gọn, căn giữa hài hoà */
             .mobile-form-toggle { padding: 7px 12px; font-size: 12px; }
+        }
+
+        /* (Mục 2) KPI trên iPad — 4 thẻ vẫn 1 hàng nhưng mỗi thẻ hẹp (~180-230px).
+           → Thu nhỏ con số + nhãn + icon, bật wrap nhãn, để "Tổng Chi Phí Dự Tính"
+             KHÔNG bị cắt "39..." nữa. Áp dụng cho cả iPad dọc & ngang (641-1280px). */
+        @media (min-width: 641px) and (max-width: 1280px) {
+            /* số liệu chính (28px → 20px) cho vừa thẻ hẹp */
+            .kpi-value,
+            #kpi-total-po, #kpi-total-cont, #kpi-cleared {
+                font-size: 20px !important;
+            }
+            .kpi-cost-value { font-size: 18px !important; }
+            /* nhãn nhỏ + cho phép xuống dòng gọn */
+            .kpi-label, .kpi-cost-label {
+                font-size: 11.5px !important;
+                line-height: 1.2 !important;
+            }
+            /* icon thu lại để chừa chỗ cho text */
+            .kpi-icon, .kpi-icon-cost {
+                width: 42px !important; height: 42px !important;
+                font-size: 17px !important;
+                flex-shrink: 0;
+            }
+            /* giảm padding & gap thẻ KPI cho cân đối */
+            .card.kpi-flip, .kpi-cost {
+                padding: 12px !important;
+                gap: 10px !important;
+                height: 92px !important;
+            }
+            /* nội dung text được phép co và không tràn */
+            .kpi-flip-wrap, .kpi-cost .flex-1 { min-width: 0; }
+            .kpi-cost-value { white-space: normal !important; word-break: break-word; }
+        }
+        /* iPad DỌC (≤834px) hẹp hơn nữa → số liệu 18px, cho phép KPI xuống 2 hàng (2x2) cho thoáng */
+        @media (min-width: 641px) and (max-width: 834px) and (orientation: portrait) {
+            .grid.md\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+            .kpi-value, #kpi-total-po, #kpi-total-cont, #kpi-cleared { font-size: 22px !important; }
+            .kpi-cost-value { font-size: 20px !important; }
+            .card.kpi-flip, .kpi-cost { height: 96px !important; }
         }
 
         /* ══════════════════════════════════════════
@@ -4479,6 +4527,25 @@
                 else if (t.matches('[data-haptic="warn"]')) HAPTIC.warn();
                 else HAPTIC.light();
             }, { passive: true });
+
+            // (Mục 1) TAP-TO-FLIP các thẻ KPI trên thiết bị cảm ứng (iPad/iPhone).
+            // Chạm vào thẻ → lật hiện thông tin mặt sau; chạm thẻ khác → thẻ cũ tự lật về.
+            document.addEventListener('click', (e) => {
+                const card = e.target.closest('.kpi-flip');
+                // Không lật nếu chạm vào nút/link bên trong thẻ (nếu có)
+                if (card && !e.target.closest('button, a, input, select')) {
+                    const wasFlipped = card.classList.contains('flipped');
+                    // đóng tất cả thẻ khác
+                    document.querySelectorAll('.kpi-flip.flipped').forEach(c => { if (c !== card) c.classList.remove('flipped'); });
+                    card.classList.toggle('flipped', !wasFlipped);
+                    HAPTIC.light();
+                    return;
+                }
+                // chạm ra ngoài → đóng hết
+                if (!e.target.closest('.kpi-flip')) {
+                    document.querySelectorAll('.kpi-flip.flipped').forEach(c => c.classList.remove('flipped'));
+                }
+            });
         }
 
         // Firebase State
@@ -5427,12 +5494,8 @@
                 const todayInRange = todayOffset >= 0 && todayOffset <= totalDays;
                 const todayLeftPct = todayInRange ? Math.min(99, Math.max(1, (todayOffset / totalDays) * 100)) : -1;
 
-                // Extract vessel name (without voyage number)
-                const vesselName = (() => {
-                    if (!item.vesselVoy) return 'Chưa có tàu';
-                    const parts = item.vesselVoy.trim().split(/\s+/);
-                    return parts.length > 1 ? parts.slice(0, -1).join(' ') : item.vesselVoy;
-                })();
+                // Hiển thị TÊN TÀU + CHUYẾN ĐẦY ĐỦ (ví dụ: "WAN HAI 308 S058")
+                const vesselName = item.vesselVoy ? item.vesselVoy.trim() : 'Chưa có tàu';
 
                 rowDiv.innerHTML = `
                     <div class="col-span-2 border-r border-slate-200 pr-2">
