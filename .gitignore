@@ -1,0 +1,12 @@
+# File nhay cam - khong commit len GitHub
+.github-config
+.github-token
+push-github.bat
+firebase-debug.log
+CLAUDE.md
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
