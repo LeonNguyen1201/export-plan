@@ -6442,7 +6442,7 @@
                 // tự co cỡ chữ nếu tiêu đề dài để không tràn lề
                 let _tfs = 15;
                 doc.setFontSize(_tfs);
-                const _maxTitleW = PW - 2*M - 24;   // chừa chỗ cho ngày góc phải
+                const _maxTitleW = PW - 2*M;   // không còn ngày góc phải → dùng full bề ngang
                 while (_tfs > 9 && doc.getTextWidth(_titleFull) > _maxTitleW) {
                     _tfs -= 0.5; doc.setFontSize(_tfs);
                 }
@@ -6453,10 +6453,6 @@
                 const printedAt = 'Xuat luc: ' + fmtDT(systemCurrentTime);
                 doc.setFontSize(8.5);
                 doc.text(printedAt, PW - M, 20.5, { align: 'right' });
-                // ngày trên góc phải
-                doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-                doc.setTextColor(...C.white);
-                doc.text(fmtDate(systemCurrentTime), PW - M, 13, { align: 'right' });
 
                 // ════ KPI CARDS ════
                 let y = 40;
