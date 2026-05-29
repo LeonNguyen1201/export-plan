@@ -2320,6 +2320,15 @@
         [data-theme="dark"] #vessel-reschedule-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
         #vr-vessel-list button:hover { background: rgba(14,165,233,0.10) !important; }
         #vr-vessel-list button:last-child { border-bottom: none !important; }
+        /* Bulk delete modal — tương phản chữ + hover dòng */
+        #bulk-delete-modal [style*="--text-primary"]   { color: #0f172a !important; }
+        #bulk-delete-modal [style*="--text-secondary"] { color: #1e293b !important; }
+        #bulk-delete-modal [style*="--text-muted"]     { color: #475569 !important; }
+        [data-theme="dark"] #bulk-delete-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
+        [data-theme="dark"] #bulk-delete-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
+        [data-theme="dark"] #bulk-delete-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
+        #bd-list .bd-row:hover { background: rgba(225,29,72,0.07) !important; }
+        #bd-list .bd-row:last-child { border-bottom: none !important; }
         /* (Fix) 2 ô ETD / Cut-off không đè nhau + input iPad không tràn */
         #vr-edit-block .grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
         #vr-edit-block .grid > div { min-width: 0 !important; }
@@ -3893,6 +3902,44 @@
             </div>
         </div>
 
+        <!-- ════════ BULK DELETE MODAL (Xóa Lô Hàng - chọn nhiều) ════════ -->
+        <div id="bulk-delete-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);max-height:88vh">
+                <!-- Header -->
+                <div class="text-white px-5 py-3.5 flex justify-between items-center" style="background:linear-gradient(90deg,#e11d48,#be123c)">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-list-check"></i>
+                        Xóa Lô Hàng (chọn nhiều)
+                    </h3>
+                    <button onclick="closeBulkDelete()" class="text-white/80 hover:text-white transition-colors text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <!-- Thanh công cụ: tìm + chọn tất cả -->
+                <div class="px-4 py-3 space-y-2.5" style="border-bottom:1px solid var(--border);background:var(--bg-card-alt)">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
+                        <input type="text" id="bd-search" oninput="bdRenderList()" placeholder="Lọc theo PO, Booking, Tàu, Cont..." autocomplete="off"
+                            class="w-full pl-9 pr-3 py-2 rounded-lg text-xs font-semibold focus:outline-none" style="background:var(--input-bg);border:1px solid var(--input-border);color:var(--text-primary)">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold" style="color:var(--text-secondary)">
+                            <input type="checkbox" id="bd-check-all" onchange="bdToggleAll(this.checked)" class="w-4 h-4" style="accent-color:#e11d48">
+                            Chọn tất cả (đang hiển thị)
+                        </label>
+                        <span id="bd-count" class="text-xs font-bold" style="color:#e11d48">Đã chọn: 0</span>
+                    </div>
+                </div>
+                <!-- Danh sách lô -->
+                <div id="bd-list" class="overflow-y-auto px-2 py-1" style="flex:1 1 auto"></div>
+                <!-- Footer -->
+                <div class="px-5 py-4 flex justify-end gap-2 border-t" style="border-color:var(--border);background:var(--bg-card-alt)">
+                    <button onclick="closeBulkDelete()" class="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style="background:var(--bg-hover);color:var(--text-secondary)">Hủy</button>
+                    <button id="bd-confirm-btn" onclick="confirmBulkDelete()" disabled class="px-5 py-2 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm" style="background:#94a3b8;cursor:not-allowed">
+                        <i class="fa-solid fa-trash-can"></i> Xóa Lô Đã Chọn
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- ════════ VESSEL RESCHEDULE MODAL (Thay Đổi Lịch Tàu) ════════ -->
         <div id="vessel-reschedule-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);">
@@ -4310,9 +4357,9 @@
                         <div class="section-head-badges flex items-center gap-2">
                             <span class="badge-pill-soft badge-pill-alert"><i class="fa-solid fa-stopwatch"></i>Chớp đỏ: &lt; 48h Cut-off</span>
                             <span id="record-count" class="badge-pill-soft badge-pill-info">0 lô hàng</span>
-                            <button type="button" onclick="deleteAllRecords()" class="btn-clear-all" title="Xóa toàn bộ lô hàng trong kế hoạch">
-                                <i class="fa-solid fa-trash-can"></i>
-                                <span>Xóa tất cả</span>
+                            <button type="button" onclick="openBulkDelete()" class="btn-clear-all" title="Chọn nhiều lô hàng để xóa">
+                                <i class="fa-solid fa-list-check"></i>
+                                <span>Xóa Lô Hàng</span>
                             </button>
                         </div>
                     </div>
@@ -5924,6 +5971,125 @@
         }
 
         // Xóa toàn bộ lô hàng (có xác nhận)
+        // ════════ XÓA LÔ HÀNG — chọn nhiều lô để xóa ════════
+        const _bdSelected = new Set();   // tập id đang chọn
+
+        function openBulkDelete() {
+            if (!dbData || dbData.length === 0) { showToast('📭 Không có lô hàng nào để xóa!', 'error'); return; }
+            _bdSelected.clear();
+            document.getElementById('bd-search').value = '';
+            document.getElementById('bd-check-all').checked = false;
+            _bdUpdateUI();
+            bdRenderList();
+            document.getElementById('bulk-delete-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('bd-search').focus(), 50);
+        }
+        function closeBulkDelete() {
+            document.getElementById('bulk-delete-modal').classList.add('hidden');
+            _bdSelected.clear();
+        }
+        // Danh sách lô đang khớp bộ lọc tìm trong modal
+        function _bdFiltered() {
+            const kw = (document.getElementById('bd-search').value || '').trim().toLowerCase();
+            if (!kw) return dbData.slice();
+            return dbData.filter(it =>
+                (it.poNo || '').toLowerCase().includes(kw) ||
+                (it.bookingNo || '').toLowerCase().includes(kw) ||
+                (it.vesselVoy || '').toLowerCase().includes(kw) ||
+                (it.type || '').toLowerCase().includes(kw) ||
+                (it.podPort || '').toLowerCase().includes(kw) ||
+                (Array.isArray(it.containerSeals) && it.containerSeals.some(cs => (cs.cont||'').toLowerCase().includes(kw)))
+            );
+        }
+        function bdRenderList() {
+            const list = _bdFiltered();
+            const el = document.getElementById('bd-list');
+            if (list.length === 0) {
+                el.innerHTML = `<div class="px-3 py-8 text-center text-xs" style="color:var(--text-muted)">Không tìm thấy lô hàng khớp</div>`;
+                _bdSyncCheckAll(list);
+                return;
+            }
+            el.innerHTML = list.map(it => {
+                const checked = _bdSelected.has(it.id) ? 'checked' : '';
+                const typeStr = [it.type, it.packaging].filter(Boolean).join(' · ');
+                return `<label class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors bd-row" style="border-bottom:1px solid var(--border)">
+                    <input type="checkbox" class="bd-check w-4 h-4" data-id="${it.id}" ${checked} onchange="bdToggleOne('${it.id}', this.checked)" style="accent-color:#e11d48;flex-shrink:0">
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-[13px] font-bold truncate" style="color:var(--text-primary)">${it.poNo || '(không tên)'}</span>
+                        <span class="block text-[11px] truncate" style="color:var(--text-muted)">${it.bookingNo || '—'} · ${it.vesselVoy || 'Chưa có tàu'}${typeStr ? ' · ' + typeStr : ''}</span>
+                    </span>
+                    <span class="text-[11px] font-bold whitespace-nowrap" style="color:var(--text-secondary)">${it.qtyCont || 0} cont</span>
+                </label>`;
+            }).join('');
+            _bdSyncCheckAll(list);
+        }
+        function bdToggleOne(id, on) {
+            if (on) _bdSelected.add(id); else _bdSelected.delete(id);
+            _bdUpdateUI();
+            _bdSyncCheckAll(_bdFiltered());
+        }
+        function bdToggleAll(on) {
+            const list = _bdFiltered();
+            list.forEach(it => { if (on) _bdSelected.add(it.id); else _bdSelected.delete(it.id); });
+            document.querySelectorAll('#bd-list .bd-check').forEach(cb => { cb.checked = on; });
+            _bdUpdateUI();
+        }
+        // đồng bộ trạng thái checkbox "chọn tất cả" theo danh sách hiển thị
+        function _bdSyncCheckAll(list) {
+            const all = list.length > 0 && list.every(it => _bdSelected.has(it.id));
+            const cbAll = document.getElementById('bd-check-all');
+            if (cbAll) cbAll.checked = all;
+        }
+        function _bdUpdateUI() {
+            const n = _bdSelected.size;
+            const cnt = document.getElementById('bd-count');
+            if (cnt) cnt.innerText = 'Đã chọn: ' + n;
+            const btn = document.getElementById('bd-confirm-btn');
+            if (btn) {
+                btn.disabled = (n === 0);
+                btn.style.background = n === 0 ? '#94a3b8' : '#e11d48';
+                btn.style.cursor = n === 0 ? 'not-allowed' : 'pointer';
+                btn.innerHTML = `<i class="fa-solid fa-trash-can"></i> Xóa ${n > 0 ? n + ' Lô' : 'Lô Đã Chọn'}`;
+            }
+        }
+        function confirmBulkDelete() {
+            const ids = Array.from(_bdSelected);
+            if (ids.length === 0) { showToast('⚠️ Chưa chọn lô nào', 'error'); return; }
+            const n = ids.length;
+            // đóng modal danh sách + nâng z-index hộp xác nhận
+            document.getElementById('bulk-delete-modal').classList.add('hidden');
+            const cm = document.getElementById('custom-modal');
+            if (cm) cm.style.zIndex = '60';
+            showConfirmModal(
+                `Xóa ${n} lô hàng đã chọn?`,
+                `⚠️ Thao tác này KHÔNG THỂ HOÀN TÁC. ${n} lô hàng đã chọn sẽ bị xóa vĩnh viễn (kể cả trên Cloud nếu đang kết nối). Bạn có chắc chắn?`,
+                () => { _applyBulkDelete(ids); _bdSelected.clear(); },
+                () => { document.getElementById('bulk-delete-modal').classList.remove('hidden'); },
+                { twoStep: true }
+            );
+        }
+        async function _applyBulkDelete(ids) {
+            const idSet = new Set(ids);
+            const roomVal = localStorage.getItem('carot_cloud_room');
+            if (roomVal) {
+                try {
+                    const colRef = roomColRef(roomVal);
+                    const batch = fbDb.batch();
+                    ids.forEach(id => batch.delete(colRef.doc(id)));
+                    await batch.commit();
+                } catch (err) {
+                    console.error(err);
+                    showToast('Lỗi xóa Cloud: ' + err.message, 'error');
+                    return;
+                }
+            } else {
+                dbData = dbData.filter(it => !idSet.has(it.id));
+                saveLocalData();
+                renderData();
+            }
+            showToast(`🗑️ Đã xóa ${ids.length} lô hàng!`, 'error');
+        }
+
         async function deleteAllRecords() {
             if (!dbData || dbData.length === 0) {
                 showToast("📭 Không có lô hàng nào để xóa!", "error");
