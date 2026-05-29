@@ -1748,14 +1748,33 @@
                 margin-top: 0 !important;
                 min-height: 44px !important;
             }
-            /* iPad-dọc: bar full-width vùng timeline (lấp khoảng trống bên phải).
-               Vạch "hôm nay" ẩn vì bar đã full-width, marker theo % global sai vị trí. */
+            /* iPad-dọc: bar full-width vùng timeline (lấp khoảng trống bên phải). */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 margin-left: 0 !important;
                 width: 100% !important;
             }
+            /* (Mục 1) HIỆN vạch "hôm nay" — vị trí theo % global timeline trong cell, vẫn cho biết
+               ngày hiện tại đang ở đâu trong khung thời gian tổng thể của các lô. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
-                display: none !important;
+                display: block !important;
+            }
+
+            /* (Mục 2) Header LOGO trên iPad-dọc — tránh "Export Plan Tracker" bị xuống 3 dòng.
+               Thu nhỏ title vừa đủ + cho phép wrap 2 dòng tối đa, căn giữa dọc với icon. */
+            .logo-block { gap: 14px !important; align-items: center !important; }
+            .logo-mark  { width: 56px !important; height: 56px !important; border-radius: 16px !important; flex-shrink: 0; }
+            .logo-ship  { font-size: 26px !important; }
+            .logo-title {
+                font-size: 22px !important;
+                line-height: 1.15 !important;
+                letter-spacing: -0.01em !important;
+                white-space: nowrap !important;  /* giữ 1 dòng "Export Plan Tracker" */
+            }
+            .logo-sub   {
+                font-size: 10px !important;
+                letter-spacing: 0.10em !important;
+                margin-top: 4px !important;
+                white-space: nowrap !important;
             }
         }
 
