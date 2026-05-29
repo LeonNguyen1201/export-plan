@@ -2270,15 +2270,22 @@
         [data-theme="dark"] #toast { box-shadow: var(--shadow-lg) !important; }
 
         /* Export plan modal */
-        /* (Mục 1) GIỮ Liquid Glass cho modal — chỉ TĂNG TƯƠNG PHẢN chữ:
-           nền sáng → chữ đậm gần đen; nền tối → chữ sáng gần trắng. */
+        /* (Đồng bộ) Style giống "Import Cont/Seal/VGM": nền glass, chữ tương phản cao,
+           cỡ chữ thống nhất — tiêu đề option 13px, mô tả 12px, leading thoáng. */
         #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
         #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
         /* Chữ trong modal — ép tương phản cao (light) */
         #export-plan-modal [style*="--text-primary"]   { color: #0f172a !important; }
         #export-plan-modal [style*="--text-secondary"] { color: #1e293b !important; }
-        #export-plan-modal [style*="--text-muted"]     { color: #475569 !important; }
+        #export-plan-modal [style*="--text-muted"]     { color: #334155 !important; }
         #export-plan-modal p.text-xs                    { color: #1e293b !important; }
+        /* (Đồng bộ cỡ chữ giống Import modal) tiêu đề option to & rõ hơn, mô tả dễ đọc hơn */
+        #export-plan-modal label.flex .text-xs.font-bold { font-size: 13px !important; }
+        #export-plan-modal label.flex .text-\[10px\] {
+            font-size: 12px !important;
+            line-height: 1.5 !important;
+            margin-top: 2px;
+        }
         /* Dark mode — chữ sáng */
         [data-theme="dark"] #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
         [data-theme="dark"] #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
@@ -2290,7 +2297,7 @@
         /* Customs/Import modal — cùng nguyên tắc tương phản */
         #cs-import-modal [style*="--text-primary"]   { color: #0f172a !important; }
         #cs-import-modal [style*="--text-secondary"] { color: #1e293b !important; }
-        #cs-import-modal [style*="--text-muted"]     { color: #475569 !important; }
+        #cs-import-modal [style*="--text-muted"]     { color: #334155 !important; }
         [data-theme="dark"] #cs-import-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
         [data-theme="dark"] #cs-import-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
         [data-theme="dark"] #cs-import-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
@@ -3772,11 +3779,11 @@
 
         <!-- Export Plan Modal -->
         <div id="export-plan-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div class="rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);">
+            <div class="rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);">
                 <!-- Header -->
-                <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-5 py-4 flex justify-between items-center">
+                <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-5 py-3.5 flex justify-between items-center">
                     <h3 class="font-bold text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-file-excel text-white/90"></i>
+                        <i class="fa-solid fa-file-excel"></i>
                         Xuất File Export Plan
                     </h3>
                     <button onclick="closeExportPlanModal()" class="text-white/80 hover:text-white transition-colors text-lg"><i class="fa-solid fa-xmark"></i></button>
