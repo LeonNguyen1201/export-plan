@@ -2518,11 +2518,13 @@
         .ql-pop-ic.pop-blue    { background: rgba(59,130,246,0.16); color:#1d4ed8; }
         .ql-pop-ic.pop-amber   { background: rgba(245,158,11,0.18); color:#b45309; }
         .ql-pop-ic.pop-red     { background: rgba(239,68,68,0.16);  color:#b91c1c; }
+        .ql-pop-ic.pop-sky     { background: rgba(14,165,233,0.16); color:#0369a1; }
         [data-theme="dark"] .ql-pop-ic.pop-emerald { background: rgba(16,185,129,0.22); color:#6ee7b7; }
         [data-theme="dark"] .ql-pop-ic.pop-violet  { background: rgba(139,92,246,0.24); color:#c4b5fd; }
         [data-theme="dark"] .ql-pop-ic.pop-blue    { background: rgba(59,130,246,0.24); color:#93c5fd; }
         [data-theme="dark"] .ql-pop-ic.pop-amber   { background: rgba(245,158,11,0.24); color:#fcd34d; }
         [data-theme="dark"] .ql-pop-ic.pop-red     { background: rgba(239,68,68,0.24);  color:#fca5a5; }
+        [data-theme="dark"] .ql-pop-ic.pop-sky     { background: rgba(14,165,233,0.24); color:#7dd3fc; }
         .ql-pop-divider { height:1px; margin:4px 6px; background: var(--border); }
 
         /* Nút tiện ích dạng "mở menu" (Tra cứu Eport / Kho biểu mẫu) — trông như ql-box-link */
@@ -4245,7 +4247,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 text-xs">
                                 <i class="fa-solid fa-magnifying-glass"></i>
                             </span>
-                            <input type="text" id="search-input" onkeyup="debounceFilter()" placeholder="Tìm nhanh theo PO, Booking, Số tờ khai, Cảng chuyển tải..." class="w-full pl-9 pr-3 py-2 border border-slate-300 !rounded-full text-xs focus:outline-none text-slate-800 bg-slate-50 transition-colors">
+                            <input type="text" id="search-input" onkeyup="debounceFilter()" placeholder="Tìm theo PO, Booking, Số Cont, Tờ khai, Cảng..." class="w-full pl-9 pr-3 py-2 border border-slate-300 !rounded-full text-xs focus:outline-none text-slate-800 bg-slate-50 transition-colors">
                         </div>
                         <select id="filter-type" onchange="filterData()" class="px-2.5 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium min-w-[130px]">
                             <option value="ALL">Tất cả LOẠI</option>
@@ -4285,10 +4287,7 @@
                             <span class="text-slate-400 font-bold text-sm">→</span>
                             <input type="date" id="filter-date-to" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                         </div>
-                        <div class="ml-auto flex items-center gap-3">
-                            <button onclick="openVesselReschedule()" class="text-[11px] font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-white shadow-sm" style="background:linear-gradient(90deg,#0ea5e9,#2563eb)" title="Thay đổi ETD / Cut-off cho tất cả lô của 1 Tàu/Chuyến">
-                                <i class="fa-solid fa-ship"></i> Thay Đổi Lịch Tàu
-                            </button>
+                        <div class="ml-auto">
                             <button onclick="document.getElementById('filter-month').value='';document.getElementById('filter-date-from').value='';document.getElementById('filter-date-to').value='';document.getElementById('filter-type').value='ALL';document.getElementById('filter-tkhq').value='ALL';document.getElementById('filter-vessel').value='ALL';document.getElementById('search-input').value='';filterData();" class="text-[10px] text-slate-400 hover:text-red-500 font-semibold flex items-center gap-1 transition-colors">
                                 <i class="fa-solid fa-xmark"></i> Xóa bộ lọc
                             </button>
@@ -4363,14 +4362,15 @@
                     </div>
                     <div class="p-3 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
 
-                        <!-- Ô 1 · MarineTraffic -->
-                        <a href="https://www.marinetraffic.com/" target="_blank" class="ql-box ql-box-link ql-link-blue group">
-                            <div class="ql-icon"><i class="fa-solid fa-ship"></i></div>
+                        <!-- Ô 1 · QUẢN LÝ HÀNH TRÌNH TÀU (popover: Tra cứu MarineTraffic + Thay đổi lịch tàu) -->
+                        <button type="button" onclick="toggleQuickPopover(event,'vessel-menu')" class="ql-box ql-box-link ql-box-trigger ql-link-blue group" aria-expanded="false" title="Quản lý hành trình tàu: Tra cứu MarineTraffic / Thay đổi lịch tàu">
+                            <i class="fa-solid fa-chevron-down ql-pop-caret"></i>
+                            <div class="ql-icon"><i class="fa-solid fa-route"></i></div>
                             <div class="ql-link-text">
-                                <div class="ql-link-main">Tra Cứu Hành Trình Tàu</div>
-                                <div class="ql-link-sub">MarineTraffic</div>
+                                <div class="ql-link-main">Quản Lý Hành Trình Tàu</div>
+                                <div class="ql-link-sub">Tra cứu &amp; Đổi lịch tàu</div>
                             </div>
-                        </a>
+                        </button>
 
                         <!-- Ô 2 · TRA CỨU EPORT (gộp Cát Lái + SP-ITC) -->
                         <button type="button" onclick="toggleQuickPopover(event,'eport-menu')" class="ql-box ql-box-link ql-box-trigger ql-link-emerald group" aria-expanded="false" title="Tra cứu Eport: Cát Lái / SP-ITC">
@@ -4415,6 +4415,19 @@
                 <button type="button" onclick="closeAllQuickPopovers();exportChartPDF()" class="ql-pop-item">
                     <span class="ql-pop-ic pop-red"><i class="fa-solid fa-file-pdf"></i></span>
                     <span>Xuất PDF báo cáo<span class="ql-pop-sub">Báo cáo thống kê đầy đủ</span></span>
+                </button>
+            </div>
+
+            <!-- (1) Quản Lý Hành Trình Tàu -->
+            <div id="vessel-menu" class="ql-popover">
+                <a href="https://www.marinetraffic.com/" target="_blank" rel="noopener" onclick="closeAllQuickPopovers()" class="ql-pop-item">
+                    <span class="ql-pop-ic pop-blue"><i class="fa-solid fa-satellite-dish"></i></span>
+                    <span>Tra Cứu Hành Trình Tàu<span class="ql-pop-sub">MarineTraffic</span></span>
+                </a>
+                <div class="ql-pop-divider"></div>
+                <button type="button" onclick="closeAllQuickPopovers(); openVesselReschedule();" class="ql-pop-item w-full text-left">
+                    <span class="ql-pop-ic pop-sky"><i class="fa-solid fa-calendar-pen"></i></span>
+                    <span>Thay Đổi Lịch Tàu<span class="ql-pop-sub">Cập nhật ETD / Cut-off</span></span>
                 </button>
             </div>
 
@@ -6010,7 +6023,12 @@
                                      (item.transitPort && item.transitPort.toLowerCase().includes(searchVal)) ||
                                      (item.podPort && item.podPort.toLowerCase().includes(searchVal)) ||
                                      (item.vesselVoy && item.vesselVoy.toLowerCase().includes(searchVal)) ||
-                                     (item.dropOff && item.dropOff.toLowerCase().includes(searchVal));
+                                     (item.dropOff && item.dropOff.toLowerCase().includes(searchVal)) ||
+                                     // (Mục 2) Tìm theo SỐ CONT / SEAL trong danh sách container của lô
+                                     (Array.isArray(item.containerSeals) && item.containerSeals.some(cs =>
+                                         (cs.cont && cs.cont.toLowerCase().includes(searchVal)) ||
+                                         (cs.seal && cs.seal.toLowerCase().includes(searchVal))
+                                     ));
                 
                 const matchesType = filterType === 'ALL' || item.type === filterType;
                 const matchesTkhq = filterTkhq === 'ALL' || item.tkhq === filterTkhq;
