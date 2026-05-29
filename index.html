@@ -4268,21 +4268,24 @@
                             <option value="Đã thông quan">Đã thông quan</option>
                             <option value="Đã kiểm hóa">Đã kiểm hóa</option>
                         </select>
-                        <select id="filter-vessel" onchange="filterData()" class="px-2.5 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium min-w-[150px]">
-                            <option value="ALL">🚢 Tất cả sổ tàu</option>
-                            <option value="entered">✅ Đã vào sổ tàu</option>
-                            <option value="not_entered">⏳ Chưa vào sổ tàu</option>
-                        </select>
+                        <div class="relative flex items-center">
+                            <i class="fa-solid fa-ship text-blue-500 text-xs absolute left-2.5 pointer-events-none"></i>
+                            <select id="filter-vessel" onchange="filterData()" class="pl-7 pr-2.5 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium min-w-[150px]">
+                                <option value="ALL">Tất cả sổ tàu</option>
+                                <option value="entered">Đã vào sổ tàu</option>
+                                <option value="not_entered">Chưa vào sổ tàu</option>
+                            </select>
+                        </div>
                     </div>
                     <!-- Hàng 2: ETD Tháng + Khoảng ngày -->
                     <div class="flex items-center gap-2.5 flex-wrap border-t border-slate-100 pt-2.5">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap">📅 ETD Tháng:</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-blue-500"></i> ETD Tháng:</span>
                             <input type="month" id="filter-month" min="2025-01" max="2050-12" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                         </div>
                         <div class="w-px h-5 bg-slate-200"></div>
                         <div class="flex items-center gap-1.5">
-                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap">📆 Từ:</span>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wide whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-calendar-day text-blue-500"></i> Từ:</span>
                             <input type="date" id="filter-date-from" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                             <span class="text-slate-400 font-bold text-sm">→</span>
                             <input type="date" id="filter-date-to" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
