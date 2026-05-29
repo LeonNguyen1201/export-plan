@@ -2320,6 +2320,22 @@
         [data-theme="dark"] #vessel-reschedule-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
         #vr-vessel-list button:hover { background: rgba(14,165,233,0.10) !important; }
         #vr-vessel-list button:last-child { border-bottom: none !important; }
+        /* (Fix) 2 ô ETD / Cut-off không đè nhau: cho phép cell co lại + input không tràn */
+        #vr-edit-block .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        #vr-edit-block .grid > div { min-width: 0; }
+        #vr-edit-block input { width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0; }
+        /* (Fix Light Mode) ép chữ rõ cho mọi text trong khối chọn tàu */
+        #vessel-reschedule-modal, #vessel-reschedule-modal * { -webkit-text-fill-color: initial; }
+        #vessel-reschedule-modal #vr-edit-block { color: #0f172a; }
+        [data-theme="dark"] #vessel-reschedule-modal #vr-edit-block { color: #f1f5f9; }
+        #vessel-reschedule-modal input { color: var(--text-primary) !important; }
+        /* (Fix) Option trong Export modal có ô nhập (Theo tháng / Khoảng TG): căn từ trên,
+           ô nhập không tràn ra ngoài viền bo tròn của option. */
+        #export-plan-modal label.flex { align-items: flex-start !important; }
+        #export-plan-modal label.flex > input[type="radio"] { margin-top: 2px; flex-shrink: 0; }
+        #export-plan-modal #ep-month-input,
+        #export-plan-modal #ep-range-inputs { box-sizing: border-box; max-width: 100%; }
+        #export-plan-modal #ep-range-inputs input { min-width: 0; }
 
         /* Checkbox accent */
         input[type="checkbox"] { accent-color: #3b82f6; }
@@ -4939,12 +4955,16 @@
         }
 
         // Xác nhận thao tác
-        function showConfirmModal(title, description, onConfirm, onCancel) {
+        function showConfirmModal(title, description, onConfirm, onCancel, opts) {
             const modal = document.getElementById('custom-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalDesc = document.getElementById('modal-desc');
             const btnConfirm = document.getElementById('modal-btn-confirm');
             const btnCancel = document.getElementById('modal-btn-cancel');
+
+            const twoStep = !!(opts && opts.twoStep);     // chế độ xác nhận 2 bước
+            const step1Label = (opts && opts.step1Label) || 'Xác Nhận';
+            const step2Label = (opts && opts.step2Label) || 'Đồng Ý';
 
             modalTitle.innerText = title;
             modalDesc.innerText = description;
@@ -4954,11 +4974,31 @@
             const newBtnConfirm = btnConfirm.cloneNode(true);
             btnConfirm.parentNode.replaceChild(newBtnConfirm, btnConfirm);
 
-            newBtnConfirm.addEventListener('click', () => {
-                _done = true;
-                modal.classList.add('hidden');
-                if (typeof onConfirm === 'function') onConfirm();
-            });
+            if (twoStep) {
+                // BƯỚC 1: nút hiện "Xác Nhận" — bấm lần đầu CHƯA xóa, chỉ chuyển sang "Đồng Ý"
+                let armed = false;
+                newBtnConfirm.innerText = step1Label;
+                newBtnConfirm.addEventListener('click', () => {
+                    if (!armed) {
+                        armed = true;
+                        newBtnConfirm.innerText = step2Label;
+                        // đổi nhãn mô tả nhắc người dùng bấm lần nữa
+                        modalDesc.innerText = description + '\n\n⚠️ Bấm "' + step2Label + '" một lần nữa để thực hiện.';
+                        try { HAPTIC && HAPTIC.warn && HAPTIC.warn(); } catch (e) {}
+                        return;
+                    }
+                    // BƯỚC 2: bấm "Đồng Ý" mới thực sự xóa
+                    _done = true;
+                    modal.classList.add('hidden');
+                    if (typeof onConfirm === 'function') onConfirm();
+                });
+            } else {
+                newBtnConfirm.addEventListener('click', () => {
+                    _done = true;
+                    modal.classList.add('hidden');
+                    if (typeof onConfirm === 'function') onConfirm();
+                });
+            }
 
             const doCancel = () => {
                 modal.classList.add('hidden');
@@ -5886,7 +5926,9 @@
                         renderData();
                         showToast(`Đã xóa toàn bộ ${total} lô hàng!`, "error");
                     }
-                }
+                },
+                null,
+                { twoStep: true }
             );
         }
 
@@ -5910,7 +5952,9 @@
                         renderData();
                         showToast("Đã xóa lô hàng thành công!", "error");
                     }
-                }
+                },
+                null,
+                { twoStep: true }
             );
         }
 
