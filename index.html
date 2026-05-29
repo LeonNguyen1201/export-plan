@@ -1748,13 +1748,13 @@
                 margin-top: 0 !important;
                 min-height: 44px !important;
             }
-            /* iPad-dọc: bar full-width vùng timeline (lấp khoảng trống bên phải). */
+            /* iPad-dọc: bar GIỮ logic JS gốc (margin-left + width% theo global timeline)
+               → thanh phản ánh ĐÚNG thời gian đóng hàng→ETD của từng lô (lô dài/ngắn khác nhau,
+               vị trí bắt đầu lệch theo ngày). KHÔNG ép full-width nữa. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
-                margin-left: 0 !important;
-                width: 100% !important;
+                min-width: 60px !important;
             }
-            /* (Mục 1) HIỆN vạch "hôm nay" — vị trí theo % global timeline trong cell, vẫn cho biết
-               ngày hiện tại đang ở đâu trong khung thời gian tổng thể của các lô. */
+            /* (Mục 1) HIỆN vạch "hôm nay" — vị trí theo % global timeline trong cell. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
                 display: block !important;
             }
