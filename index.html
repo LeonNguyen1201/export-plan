@@ -8107,16 +8107,28 @@ ${buildAIContext()}
             const newCutoff = document.getElementById('vr-new-cutoff').value;
             if (!newEtd && !newCutoff) { showToast('⚠️ Nhập ETD hoặc Cut-off mới', 'error'); return; }
 
-            const affected = dbData.filter(it => (it.vesselVoy || '').trim() === _vrSelectedVessel);
+            // (Fix lỗi null) Bắt giữ giá trị vào biến cục bộ NGAY — tránh bị reset thành null sau này
+            const vesselName = _vrSelectedVessel;
+            const affected = dbData.filter(it => (it.vesselVoy || '').trim() === vesselName);
             const count = affected.length;
             const parts = [];
             if (newEtd)    parts.push(`ETD → ${formatDate(newEtd)}`);
             if (newCutoff) parts.push(`Cut-off → ${formatDateTime(newCutoff)}`);
 
+            // (Fix lỗi che modal) Đóng hộp "Thay đổi lịch tàu" TRƯỚC khi mở hộp xác nhận,
+            // nâng z-index hộp xác nhận để nó luôn nằm trên cùng.
+            document.getElementById('vessel-reschedule-modal').classList.add('hidden');
+            const cm = document.getElementById('custom-modal');
+            if (cm) cm.style.zIndex = '60';
+
             showConfirmModal(
                 'Xác nhận đổi lịch tàu?',
-                `Cập nhật ${parts.join(' · ')} cho ${count} lô hàng thuộc Tàu/Chuyến "${_vrSelectedVessel}". Bạn có chắc chắn?`,
-                () => _applyVesselReschedule(_vrSelectedVessel, newEtd, newCutoff)
+                `Cập nhật ${parts.join(' · ')} cho ${count} lô hàng thuộc Tàu/Chuyến "${vesselName}". Bạn có chắc chắn?`,
+                () => { _applyVesselReschedule(vesselName, newEtd, newCutoff); _vrSelectedVessel = null; },
+                () => {
+                    // Bấm Hủy ở hộp xác nhận → mở lại hộp "Thay đổi lịch tàu" để chỉnh tiếp
+                    document.getElementById('vessel-reschedule-modal').classList.remove('hidden');
+                }
             );
         }
         function _applyVesselReschedule(vesselName, newEtd, newCutoff) {
@@ -8137,7 +8149,8 @@ ${buildAIContext()}
             });
             saveLocalData();
             renderData();
-            closeVesselReschedule();
+            document.getElementById('vessel-reschedule-modal').classList.add('hidden');
+            _vrSelectedVessel = null;
             showToast(`✅ Đã đổi lịch ${updated} lô của tàu "${vesselName}"`);
         }
 
