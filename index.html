@@ -2311,6 +2311,16 @@
         [data-theme="dark"] #cs-import-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
         [data-theme="dark"] #cs-import-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
 
+        /* Vessel Reschedule modal — tương phản chữ + hover danh sách tàu */
+        #vessel-reschedule-modal [style*="--text-primary"]   { color: #0f172a !important; }
+        #vessel-reschedule-modal [style*="--text-secondary"] { color: #1e293b !important; }
+        #vessel-reschedule-modal [style*="--text-muted"]     { color: #334155 !important; }
+        [data-theme="dark"] #vessel-reschedule-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
+        [data-theme="dark"] #vessel-reschedule-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
+        [data-theme="dark"] #vessel-reschedule-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
+        #vr-vessel-list button:hover { background: rgba(14,165,233,0.10) !important; }
+        #vr-vessel-list button:last-child { border-bottom: none !important; }
+
         /* Checkbox accent */
         input[type="checkbox"] { accent-color: #3b82f6; }
 
@@ -3854,6 +3864,62 @@
             </div>
         </div>
 
+        <!-- ════════ VESSEL RESCHEDULE MODAL (Thay Đổi Lịch Tàu) ════════ -->
+        <div id="vessel-reschedule-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);">
+                <!-- Header -->
+                <div class="text-white px-5 py-3.5 flex justify-between items-center" style="background:linear-gradient(90deg,#0ea5e9,#2563eb)">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-ship"></i>
+                        Thay Đổi Lịch Tàu (ETD / Cut-off)
+                    </h3>
+                    <button onclick="closeVesselReschedule()" class="text-white/80 hover:text-white transition-colors text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="p-5 space-y-4 text-xs" style="color:var(--text-primary)">
+                    <p class="leading-relaxed" style="color:var(--text-muted)">
+                        Nhập <b>Tàu / Chuyến</b> cần đổi lịch. Chọn đúng tàu rồi nhập ETD &amp; Cut-off mới — hệ thống sẽ cập nhật cho <b>tất cả lô hàng</b> có cùng Tàu/Chuyến đó.
+                    </p>
+                    <!-- Bước 1: tìm tàu -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wide mb-1.5" style="color:var(--text-secondary)">Tàu / Chuyến cần tìm</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
+                            <input type="text" id="vr-search" oninput="vrRenderVesselList()" placeholder="VD: WAN HAI 308 S058" autocomplete="off"
+                                class="w-full pl-9 pr-3 py-2 rounded-lg text-xs font-semibold focus:outline-none"
+                                style="background:var(--input-bg);border:1px solid var(--input-border);color:var(--text-primary)">
+                        </div>
+                        <!-- danh sách tàu khớp -->
+                        <div id="vr-vessel-list" class="mt-2 max-h-44 overflow-y-auto rounded-lg" style="border:1px solid var(--border)"></div>
+                    </div>
+                    <!-- Bước 2: nhập lịch mới (ẩn đến khi chọn tàu) -->
+                    <div id="vr-edit-block" class="hidden space-y-3 rounded-xl p-3" style="background:var(--bg-card-alt);border:1px solid var(--border)">
+                        <div class="text-[12px]">
+                            Tàu đang chọn: <b id="vr-selected-name" style="color:#2563eb"></b>
+                            <span id="vr-affect-count" class="ml-1 font-bold" style="color:#0ea5e9"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wide mb-1" style="color:var(--text-secondary)">ETD mới (Ngày tàu chạy)</label>
+                                <input type="date" id="vr-new-etd" class="w-full px-2 py-1.5 rounded-lg text-xs font-semibold focus:outline-none" style="background:var(--input-bg);border:1px solid var(--input-border);color:var(--text-primary)">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wide mb-1" style="color:var(--text-secondary)">Cut-off mới</label>
+                                <input type="datetime-local" id="vr-new-cutoff" class="w-full px-2 py-1.5 rounded-lg text-xs font-semibold focus:outline-none" style="background:var(--input-bg);border:1px solid var(--input-border);color:var(--text-primary)">
+                            </div>
+                        </div>
+                        <p class="text-[10px]" style="color:var(--text-muted)"><i class="fa-solid fa-circle-info mr-1" style="color:#0ea5e9"></i>Để trống ô nào thì giữ nguyên giá trị cũ của ô đó.</p>
+                    </div>
+                </div>
+                <!-- Footer -->
+                <div class="px-5 py-4 flex justify-end gap-2 border-t" style="border-color:var(--border);background:var(--bg-card-alt)">
+                    <button onclick="closeVesselReschedule()" class="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style="background:var(--bg-hover);color:var(--text-secondary)">Hủy</button>
+                    <button id="vr-confirm-btn" onclick="confirmVesselReschedule()" disabled class="px-5 py-2 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm" style="background:#94a3b8;cursor:not-allowed">
+                        <i class="fa-solid fa-calendar-check"></i> Xác Nhận Đổi Lịch
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- KPI Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
             <!-- PO · hover → trung bình đơn hàng/ngày, /tháng -->
@@ -4192,7 +4258,10 @@
                             <span class="text-slate-400 font-bold text-sm">→</span>
                             <input type="date" id="filter-date-to" onchange="filterData()" class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium">
                         </div>
-                        <div class="ml-auto">
+                        <div class="ml-auto flex items-center gap-3">
+                            <button onclick="openVesselReschedule()" class="text-[11px] font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-white shadow-sm" style="background:linear-gradient(90deg,#0ea5e9,#2563eb)" title="Thay đổi ETD / Cut-off cho tất cả lô của 1 Tàu/Chuyến">
+                                <i class="fa-solid fa-ship"></i> Thay Đổi Lịch Tàu
+                            </button>
                             <button onclick="document.getElementById('filter-month').value='';document.getElementById('filter-date-from').value='';document.getElementById('filter-date-to').value='';document.getElementById('filter-type').value='ALL';document.getElementById('filter-tkhq').value='ALL';document.getElementById('filter-vessel').value='ALL';document.getElementById('search-input').value='';filterData();" class="text-[10px] text-slate-400 hover:text-red-500 font-semibold flex items-center gap-1 transition-colors">
                                 <i class="fa-solid fa-xmark"></i> Xóa bộ lọc
                             </button>
@@ -7955,6 +8024,121 @@ ${buildAIContext()}
         function closeContImport() {
             document.getElementById('cs-import-modal').classList.add('hidden');
             csImportTargetId = null;
+        }
+
+        // ════════ THAY ĐỔI LỊCH TÀU (bulk ETD / Cut-off theo Tàu/Chuyến) ════════
+        let _vrSelectedVessel = null;   // tên Tàu/Chuyến đang chọn (đã trim)
+
+        function openVesselReschedule() {
+            _vrSelectedVessel = null;
+            document.getElementById('vr-search').value = '';
+            document.getElementById('vr-edit-block').classList.add('hidden');
+            document.getElementById('vr-new-etd').value = '';
+            document.getElementById('vr-new-cutoff').value = '';
+            _vrSetConfirmEnabled(false);
+            vrRenderVesselList();
+            document.getElementById('vessel-reschedule-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('vr-search').focus(), 50);
+        }
+        function closeVesselReschedule() {
+            document.getElementById('vessel-reschedule-modal').classList.add('hidden');
+            _vrSelectedVessel = null;
+        }
+        function _vrSetConfirmEnabled(on) {
+            const btn = document.getElementById('vr-confirm-btn');
+            if (!btn) return;
+            btn.disabled = !on;
+            btn.style.background = on ? '#2563eb' : '#94a3b8';
+            btn.style.cursor = on ? 'pointer' : 'not-allowed';
+        }
+        // Gom danh sách Tàu/Chuyến duy nhất (chỉ lô CÓ Tàu/Chuyến) + đếm số lô mỗi tàu
+        function _vrGetVesselGroups() {
+            const map = {};
+            dbData.forEach(it => {
+                const v = (it.vesselVoy || '').trim();
+                if (!v) return;                    // điều kiện ĐỦ: phải có Tàu/Chuyến
+                if (!map[v]) map[v] = { name: v, count: 0, etd: it.etd || '', cutOff: it.cutOff || '' };
+                map[v].count++;
+            });
+            return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+        }
+        function vrRenderVesselList() {
+            const kw = (document.getElementById('vr-search').value || '').trim().toLowerCase();
+            const listEl = document.getElementById('vr-vessel-list');
+            let groups = _vrGetVesselGroups();
+            if (kw) groups = groups.filter(g => g.name.toLowerCase().includes(kw));
+
+            if (groups.length === 0) {
+                listEl.innerHTML = `<div class="px-3 py-3 text-center text-[11px]" style="color:var(--text-muted)">
+                    ${kw ? 'Không tìm thấy Tàu/Chuyến khớp' : 'Chưa có lô hàng nào gắn Tàu/Chuyến'}</div>`;
+                return;
+            }
+            listEl.innerHTML = groups.slice(0, 50).map(g => {
+                const active = (_vrSelectedVessel === g.name);
+                return `<button type="button" onclick="vrSelectVessel('${g.name.replace(/'/g, "\\'")}')"
+                    class="w-full flex items-center justify-between gap-2 px-3 py-2 text-left transition-colors"
+                    style="border-bottom:1px solid var(--border);${active ? 'background:rgba(37,99,235,0.12);' : ''}">
+                    <span class="font-bold text-[12px] truncate" style="color:var(--text-primary)">
+                        <i class="fa-solid fa-ship mr-1.5" style="color:#0ea5e9"></i>${g.name}</span>
+                    <span class="text-[10px] font-bold whitespace-nowrap" style="color:#0ea5e9">${g.count} lô</span>
+                </button>`;
+            }).join('');
+        }
+        function vrSelectVessel(name) {
+            _vrSelectedVessel = name;
+            const groups = _vrGetVesselGroups();
+            const g = groups.find(x => x.name === name);
+            const count = g ? g.count : 0;
+            document.getElementById('vr-selected-name').innerText = name;
+            document.getElementById('vr-affect-count').innerText = `· ${count} lô sẽ được cập nhật`;
+            // Điền sẵn ETD/Cut-off hiện tại của tàu để dễ chỉnh
+            if (g && g.etd) document.getElementById('vr-new-etd').value = g.etd;
+            if (g && g.cutOff) {
+                // cutOff dạng "YYYY-MM-DDTHH:mm" → hợp datetime-local
+                document.getElementById('vr-new-cutoff').value = g.cutOff.slice(0, 16);
+            }
+            document.getElementById('vr-edit-block').classList.remove('hidden');
+            _vrSetConfirmEnabled(true);
+            vrRenderVesselList();   // tô sáng dòng đang chọn
+        }
+        function confirmVesselReschedule() {
+            if (!_vrSelectedVessel) { showToast('⚠️ Chưa chọn Tàu/Chuyến', 'error'); return; }
+            const newEtd = document.getElementById('vr-new-etd').value;
+            const newCutoff = document.getElementById('vr-new-cutoff').value;
+            if (!newEtd && !newCutoff) { showToast('⚠️ Nhập ETD hoặc Cut-off mới', 'error'); return; }
+
+            const affected = dbData.filter(it => (it.vesselVoy || '').trim() === _vrSelectedVessel);
+            const count = affected.length;
+            const parts = [];
+            if (newEtd)    parts.push(`ETD → ${formatDate(newEtd)}`);
+            if (newCutoff) parts.push(`Cut-off → ${formatDateTime(newCutoff)}`);
+
+            showConfirmModal(
+                'Xác nhận đổi lịch tàu?',
+                `Cập nhật ${parts.join(' · ')} cho ${count} lô hàng thuộc Tàu/Chuyến "${_vrSelectedVessel}". Bạn có chắc chắn?`,
+                () => _applyVesselReschedule(_vrSelectedVessel, newEtd, newCutoff)
+            );
+        }
+        function _applyVesselReschedule(vesselName, newEtd, newCutoff) {
+            const roomVal = localStorage.getItem('carot_cloud_room');
+            let updated = 0;
+            dbData = dbData.map(it => {
+                if ((it.vesselVoy || '').trim() !== vesselName) return it;
+                let rec = { ...it };
+                if (newEtd)    rec.etd = newEtd;
+                if (newCutoff) rec.cutOff = newCutoff;
+                rec = applyBusinessRules(rec);     // tính lại cảnh báo cut-off, v.v.
+                updated++;
+                // đẩy cloud nền nếu đang kết nối
+                if (roomVal) {
+                    try { roomColRef(roomVal).doc(rec.id).set(rec).catch(() => {}); } catch (e) {}
+                }
+                return rec;
+            });
+            saveLocalData();
+            renderData();
+            closeVesselReschedule();
+            showToast(`✅ Đã đổi lịch ${updated} lô của tàu "${vesselName}"`);
         }
 
         // Template do hệ thống tự thiết kế: 3 cột CONT | SEAL | VGM + vài dòng mẫu
