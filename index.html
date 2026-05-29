@@ -6419,13 +6419,34 @@
                 };
 
                 // ════ HEADER BAND ════
+                // (Mục 1) Tiêu đề động theo bộ lọc đang áp dụng (ETD tháng / khoảng ngày / tất cả)
+                const _fMonth    = document.getElementById('filter-month')?.value || '';
+                const _fFrom     = document.getElementById('filter-date-from')?.value || '';
+                const _fTo       = document.getElementById('filter-date-to')?.value || '';
+                let _periodLabel = '';
+                if (_fMonth) {
+                    const [yy, mm] = _fMonth.split('-');
+                    _periodLabel = 'THANG ' + mm + '/' + yy;
+                } else if (_fFrom || _fTo) {
+                    _periodLabel = (_fFrom ? fmtDate(_fFrom) : '...') + ' DEN ' + (_fTo ? fmtDate(_fTo) : '...');
+                }
+                const _titleBase = 'BAO CAO THONG KE KE HOACH XUAT HANG';
+                const _titleFull = _periodLabel ? (_titleBase + ' ' + _periodLabel) : _titleBase;
+
                 doc.setFillColor(...C.navy);
                 doc.rect(0, 0, PW, 30, 'F');
                 doc.setFillColor(...C.blue);
                 doc.rect(0, 30, PW, 1.4, 'F');
                 doc.setTextColor(...C.white);
-                doc.setFont('helvetica','bold'); doc.setFontSize(15);
-                doc.text('BAO CAO THONG KE KE HOACH XUAT HANG', M, 13);
+                doc.setFont('helvetica','bold');
+                // tự co cỡ chữ nếu tiêu đề dài để không tràn lề
+                let _tfs = 15;
+                doc.setFontSize(_tfs);
+                const _maxTitleW = PW - 2*M - 24;   // chừa chỗ cho ngày góc phải
+                while (_tfs > 9 && doc.getTextWidth(_titleFull) > _maxTitleW) {
+                    _tfs -= 0.5; doc.setFontSize(_tfs);
+                }
+                doc.text(_titleFull, M, 13);
                 doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
                 doc.setTextColor(200, 214, 235);
                 doc.text(company.toUpperCase() + '  ·  EXPORT PLAN TRACKER 2026', M, 20.5);
@@ -6475,12 +6496,28 @@
                     doc.line(M, yy+2.4, PW-M, yy+2.4);
                 };
 
-                // Lấy ảnh từ Chart.js (nền trắng cho PDF)
+                // Lấy ảnh từ Chart.js (nền trắng cho PDF) + kích thước canvas để giữ tỉ lệ
                 const grabChart = (inst) => {
                     try {
                         if (!inst) return null;
-                        return inst.toBase64Image('image/png', 1);
+                        const cv = inst.canvas;
+                        return {
+                            img: inst.toBase64Image('image/png', 1),
+                            w: cv.width || 1,
+                            h: cv.height || 1
+                        };
                     } catch(e){ return null; }
+                };
+                // Vẽ ảnh chart vào 1 ô VUÔNG, GIỮ TỈ LỆ (letterbox) → vòng tròn luôn tròn đều
+                const drawChartFit = (chartObj, x, y, box) => {
+                    if (!chartObj) return false;
+                    const ar = chartObj.w / chartObj.h;     // tỉ lệ thật của canvas
+                    let dw = box, dh = box;
+                    if (ar >= 1) { dh = box / ar; } else { dw = box * ar; }
+                    const ox = x + (box - dw) / 2;          // căn giữa trong ô vuông
+                    const oy = y + (box - dh) / 2;
+                    doc.addImage(chartObj.img, 'PNG', ox, oy, dw, dh, undefined, 'FAST');
+                    return true;
                 };
                 const pieImg    = grabChart(pieChartInstance);
                 const marketImg = grabChart(marketChartInstance);
@@ -6493,9 +6530,9 @@
                 const typeRows = Object.keys(typeCounts).sort((a,b)=> typeCounts[b]-typeCounts[a])
                     .map(k => [k || '—', String(typeCounts[k]), (totalCont? Math.round(typeCounts[k]/totalCont*100):0) + '%']);
 
-                const pieBoxW = 78, pieBoxH = 58;
+                const pieBoxW = 58, pieBoxH = 58;   // (Mục 2) VUÔNG để vòng tròn không bị méo
                 if (pieImg) {
-                    doc.addImage(pieImg, 'PNG', M, y, pieBoxW, pieBoxH, undefined, 'FAST');
+                    drawChartFit(pieImg, M, y, pieBoxW);
                 } else {
                     doc.setTextColor(...C.slate2); doc.setFontSize(8);
                     doc.text('(Khong co du lieu bieu do)', M, y+10);
@@ -6538,9 +6575,9 @@
                             ((v / marketTotalPDF) * 100).toFixed(1) + '%'
                         ];
                     });
-                const mBoxW = 78, mBoxH = 58;
+                const mBoxW = 58, mBoxH = 58;   // (Mục 2) VUÔNG để vòng tròn không bị méo
                 if (marketImg) {
-                    doc.addImage(marketImg, 'PNG', M, y, mBoxW, mBoxH, undefined, 'FAST');
+                    drawChartFit(marketImg, M, y, mBoxW);
                 } else {
                     doc.setTextColor(...C.slate2); doc.setFontSize(8);
                     doc.text('(Khong co du lieu bieu do)', M, y+10);
