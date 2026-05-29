@@ -2273,7 +2273,16 @@
         /* (Đồng bộ) Style giống "Import Cont/Seal/VGM": nền glass, chữ tương phản cao,
            cỡ chữ thống nhất — tiêu đề option 13px, mô tả 12px, leading thoáng. */
         #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
-        #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
+        #export-plan-modal label.flex:hover { border-color: #107C41 !important; }
+        /* Option đang chọn → viền + nền xanh Excel nhạt */
+        #export-plan-modal label.flex:has(input:checked) {
+            border-color: #107C41 !important;
+            background: rgba(16,124,65,0.08) !important;
+        }
+        [data-theme="dark"] #export-plan-modal label.flex:has(input:checked) {
+            border-color: #21A366 !important;
+            background: rgba(33,163,102,0.14) !important;
+        }
         /* Chữ trong modal — ép tương phản cao (light) */
         #export-plan-modal [style*="--text-primary"]   { color: #0f172a !important; }
         #export-plan-modal [style*="--text-secondary"] { color: #1e293b !important; }
@@ -2288,7 +2297,7 @@
         }
         /* Dark mode — chữ sáng */
         [data-theme="dark"] #export-plan-modal label.flex { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
-        [data-theme="dark"] #export-plan-modal label.flex:hover { border-color: #f97316 !important; }
+        [data-theme="dark"] #export-plan-modal label.flex:hover { border-color: #107C41 !important; }
         [data-theme="dark"] #ep-preview { background: var(--bg-card-alt) !important; border-color: var(--border) !important; }
         [data-theme="dark"] #export-plan-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
         [data-theme="dark"] #export-plan-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
@@ -3781,7 +3790,7 @@
         <div id="export-plan-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);">
                 <!-- Header -->
-                <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-5 py-3.5 flex justify-between items-center">
+                <div class="text-white px-5 py-3.5 flex justify-between items-center" style="background:linear-gradient(90deg,#21A366,#107C41)">
                     <h3 class="font-bold text-sm flex items-center gap-2">
                         <i class="fa-solid fa-file-excel"></i>
                         Xuất File Export Plan
@@ -3793,23 +3802,23 @@
                     <div class="space-y-2">
                         <p class="text-xs font-bold uppercase tracking-wide" style="color:var(--text-secondary)">Chọn cách xuất file:</p>
                         <div class="space-y-2">
-                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-orange-400 transition-colors group" style="border-color:var(--border);background:var(--bg-card-alt)" id="ep-opt-all-wrap">
-                                <input type="radio" name="ep-mode" value="all" id="ep-opt-all" checked onchange="onExportModeChange()" class="w-4 h-4 text-orange-500">
+                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-emerald-500 transition-colors group" style="border-color:var(--border);background:var(--bg-card-alt)" id="ep-opt-all-wrap">
+                                <input type="radio" name="ep-mode" value="all" id="ep-opt-all" checked onchange="onExportModeChange()" class="w-4 h-4" style="accent-color:#107C41">
                                 <div>
-                                    <div class="text-xs font-bold" style="color:var(--text-primary)">Xuất toàn bộ <span id="ep-all-count" class="text-orange-600 font-extrabold"></span></div>
+                                    <div class="text-xs font-bold" style="color:var(--text-primary)">Xuất toàn bộ <span id="ep-all-count" class="font-extrabold" style="color:#107C41"></span></div>
                                     <div class="text-[10px]" style="color:var(--text-muted)">Lấy tất cả lô hàng hiện có, sắp xếp ETD gần nhất lên đầu</div>
                                 </div>
                             </label>
-                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-orange-400 transition-colors" style="border-color:var(--border);background:var(--bg-card-alt)">
-                                <input type="radio" name="ep-mode" value="month" id="ep-opt-month" onchange="onExportModeChange()" class="w-4 h-4 text-orange-500">
+                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-emerald-500 transition-colors" style="border-color:var(--border);background:var(--bg-card-alt)">
+                                <input type="radio" name="ep-mode" value="month" id="ep-opt-month" onchange="onExportModeChange()" class="w-4 h-4" style="accent-color:#107C41">
                                 <div class="flex-1">
                                     <div class="text-xs font-bold" style="color:var(--text-primary)">Theo tháng</div>
                                     <div class="text-[10px]" style="color:var(--text-muted)">Lọc theo tháng ETD (Ngày tàu chạy)</div>
                                     <input type="month" id="ep-month-input" min="2025-01" max="2050-12" class="mt-2 px-2 py-1 border rounded-lg text-xs font-semibold w-full hidden" style="background:var(--input-bg);border-color:var(--input-border);color:var(--text-primary)">
                                 </div>
                             </label>
-                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-orange-400 transition-colors" style="border-color:var(--border);background:var(--bg-card-alt)">
-                                <input type="radio" name="ep-mode" value="range" id="ep-opt-range" onchange="onExportModeChange()" class="w-4 h-4 text-orange-500">
+                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-emerald-500 transition-colors" style="border-color:var(--border);background:var(--bg-card-alt)">
+                                <input type="radio" name="ep-mode" value="range" id="ep-opt-range" onchange="onExportModeChange()" class="w-4 h-4" style="accent-color:#107C41">
                                 <div class="flex-1">
                                     <div class="text-xs font-bold" style="color:var(--text-primary)">Khoảng thời gian</div>
                                     <div class="text-[10px]" style="color:var(--text-muted)">Lọc ETD trong khoảng từ ngày → đến ngày</div>
@@ -3820,10 +3829,10 @@
                                     </div>
                                 </div>
                             </label>
-                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-orange-400 transition-colors" style="border-color:var(--border);background:var(--bg-card-alt)" id="ep-opt-sel-wrap">
-                                <input type="radio" name="ep-mode" value="selected" id="ep-opt-selected" onchange="onExportModeChange()" class="w-4 h-4 text-orange-500">
+                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:border-emerald-500 transition-colors" style="border-color:var(--border);background:var(--bg-card-alt)" id="ep-opt-sel-wrap">
+                                <input type="radio" name="ep-mode" value="selected" id="ep-opt-selected" onchange="onExportModeChange()" class="w-4 h-4" style="accent-color:#107C41">
                                 <div>
-                                    <div class="text-xs font-bold" style="color:var(--text-primary)">Lô hàng đã tích chọn <span id="ep-sel-count" class="text-orange-600 font-extrabold"></span></div>
+                                    <div class="text-xs font-bold" style="color:var(--text-primary)">Lô hàng đã tích chọn <span id="ep-sel-count" class="font-extrabold" style="color:#107C41"></span></div>
                                     <div class="text-[10px]" style="color:var(--text-muted)">Chỉ xuất những lô đã tích checkbox ở cột HÀNH ĐỘNG</div>
                                 </div>
                             </label>
@@ -3838,7 +3847,7 @@
                 <!-- Footer -->
                 <div class="px-5 py-4 flex justify-end gap-2 border-t" style="border-color:var(--border);background:var(--bg-card-alt)">
                     <button onclick="closeExportPlanModal()" class="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style="background:var(--bg-hover);color:var(--text-secondary)">Hủy</button>
-                    <button onclick="executeExportPlan()" class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm">
+                    <button onclick="executeExportPlan()" class="px-5 py-2 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm" style="background:#107C41" onmouseover="this.style.background='#0d6435'" onmouseout="this.style.background='#107C41'">
                         <i class="fa-solid fa-file-arrow-down"></i> Xuất File Excel
                     </button>
                 </div>
