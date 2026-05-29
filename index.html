@@ -2329,6 +2329,15 @@
         [data-theme="dark"] #bulk-delete-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
         #bd-list .bd-row:hover { background: rgba(225,29,72,0.07) !important; }
         #bd-list .bd-row:last-child { border-bottom: none !important; }
+        /* Eport export modal — tương phản chữ + hover dòng */
+        #eport-export-modal [style*="--text-primary"]   { color: #0f172a !important; }
+        #eport-export-modal [style*="--text-secondary"] { color: #1e293b !important; }
+        #eport-export-modal [style*="--text-muted"]     { color: #475569 !important; }
+        [data-theme="dark"] #eport-export-modal [style*="--text-primary"]   { color: #f1f5f9 !important; }
+        [data-theme="dark"] #eport-export-modal [style*="--text-secondary"] { color: #e2e8f0 !important; }
+        [data-theme="dark"] #eport-export-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
+        #ee-list .ee-row:hover { background: rgba(14,165,233,0.08) !important; }
+        #ee-list .ee-row:last-child { border-bottom: none !important; }
         /* (Fix) 2 ô ETD / Cut-off không đè nhau + input iPad không tràn */
         #vr-edit-block .grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
         #vr-edit-block .grid > div { min-width: 0 !important; }
@@ -3902,6 +3911,44 @@
             </div>
         </div>
 
+        <!-- ════════ EPORT EXPORT MODAL (Xuất File Eport - chọn nhiều / tất cả) ════════ -->
+        <div id="eport-export-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);max-height:88vh">
+                <!-- Header -->
+                <div class="text-white px-5 py-3.5 flex justify-between items-center" style="background:linear-gradient(90deg,#0ea5e9,#0284c7)">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        Xuất File Eport (chọn lô)
+                    </h3>
+                    <button onclick="closeEportExport()" class="text-white/80 hover:text-white transition-colors text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <!-- Thanh công cụ -->
+                <div class="px-4 py-3 space-y-2.5" style="border-bottom:1px solid var(--border);background:var(--bg-card-alt)">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
+                        <input type="text" id="ee-search" oninput="eeRenderList()" placeholder="Lọc theo PO, Booking, Tàu, Cont..." autocomplete="off"
+                            class="w-full pl-9 pr-3 py-2 rounded-lg text-xs font-semibold focus:outline-none" style="background:var(--input-bg);border:1px solid var(--input-border);color:var(--text-primary)">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold" style="color:var(--text-secondary)">
+                            <input type="checkbox" id="ee-check-all" onchange="eeToggleAll(this.checked)" class="w-4 h-4" style="accent-color:#0ea5e9">
+                            Chọn tất cả (đang hiển thị)
+                        </label>
+                        <span id="ee-count" class="text-xs font-bold" style="color:#0284c7">Đã chọn: 0</span>
+                    </div>
+                </div>
+                <!-- Danh sách lô -->
+                <div id="ee-list" class="overflow-y-auto px-2 py-1" style="flex:1 1 auto"></div>
+                <!-- Footer -->
+                <div class="px-5 py-4 flex flex-wrap justify-end gap-2 border-t" style="border-color:var(--border);background:var(--bg-card-alt)">
+                    <button onclick="closeEportExport()" class="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style="background:var(--bg-hover);color:var(--text-secondary)">Hủy</button>
+                    <button id="ee-confirm-btn" onclick="eeExportSelected()" disabled class="px-5 py-2 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm" style="background:#94a3b8;cursor:not-allowed">
+                        <i class="fa-solid fa-file-arrow-up"></i> Xuất Lô Đã Chọn
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- ════════ BULK DELETE MODAL (Xóa Lô Hàng - chọn nhiều) ════════ -->
         <div id="bulk-delete-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);max-height:88vh">
@@ -4084,8 +4131,8 @@
                                 <span class="ql-tool-iconbox"><i class="fa-solid fa-file-import"></i></span><span>Import Excel</span>
                                 <input type="file" id="excel-import-input" accept=".xlsx,.xlsm,.xls" onchange="importFromExcel(event)" class="hidden">
                             </label>
-                            <button type="button" onclick="exportEport()" class="ql-tool ql-tool-sky" title="Tích chọn lô → Xuất Tờ Khai Eport">
-                                <span class="ql-tool-iconbox"><i class="fa-solid fa-file-arrow-up"></i></span><span>Xuất Eport</span>
+                            <button type="button" onclick="openEportExport()" class="ql-tool ql-tool-sky" title="Chọn lô → Xuất File Eport">
+                                <span class="ql-tool-iconbox"><i class="fa-solid fa-file-arrow-up"></i></span><span>Xuất File Eport</span>
                             </button>
                         </div>
                     </div>
@@ -8714,15 +8761,117 @@ ${buildAIContext()}
         }
 
         // ===== XUẤT TỜ KHAI EPORT (Change 6) =====
-        function exportEport() {
-            const checked = [...document.querySelectorAll('.eport-check:checked')];
-            if (checked.length === 0) {
-                showToast('⚠️ Hãy tích chọn lô hàng cần khai Eport!', 'error');
+        // ════════ XUẤT FILE EPORT — chọn nhiều / tất cả ════════
+        const _eeSelected = new Set();
+
+        function openEportExport() {
+            if (!dbData || dbData.length === 0) { showToast('📭 Không có lô hàng nào!', 'error'); return; }
+            _eeSelected.clear();
+            document.getElementById('ee-search').value = '';
+            document.getElementById('ee-check-all').checked = false;
+            _eeUpdateUI();
+            eeRenderList();
+            document.getElementById('eport-export-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('ee-search').focus(), 50);
+        }
+        function closeEportExport() {
+            document.getElementById('eport-export-modal').classList.add('hidden');
+            _eeSelected.clear();
+        }
+        function _eeFiltered() {
+            const kw = (document.getElementById('ee-search').value || '').trim().toLowerCase();
+            if (!kw) return dbData.slice();
+            return dbData.filter(it =>
+                (it.poNo || '').toLowerCase().includes(kw) ||
+                (it.bookingNo || '').toLowerCase().includes(kw) ||
+                (it.vesselVoy || '').toLowerCase().includes(kw) ||
+                (it.type || '').toLowerCase().includes(kw) ||
+                (it.podPort || '').toLowerCase().includes(kw) ||
+                (Array.isArray(it.containerSeals) && it.containerSeals.some(cs => (cs.cont||'').toLowerCase().includes(kw)))
+            );
+        }
+        function eeRenderList() {
+            const list = _eeFiltered();
+            const el = document.getElementById('ee-list');
+            if (list.length === 0) {
+                el.innerHTML = `<div class="px-3 py-8 text-center text-xs" style="color:var(--text-muted)">Không tìm thấy lô hàng khớp</div>`;
+                _eeSyncCheckAll(list); return;
+            }
+            el.innerHTML = list.map(it => {
+                const checked = _eeSelected.has(it.id) ? 'checked' : '';
+                const typeStr = [it.type, it.packaging].filter(Boolean).join(' · ');
+                const drop = it.dropOff ? ` · ${it.dropOff}` : '';
+                return `<label class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ee-row" style="border-bottom:1px solid var(--border)">
+                    <input type="checkbox" class="ee-check w-4 h-4" data-id="${it.id}" ${checked} onchange="eeToggleOne('${it.id}', this.checked)" style="accent-color:#0ea5e9;flex-shrink:0">
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-[13px] font-bold truncate" style="color:var(--text-primary)">${it.poNo || '(không tên)'}</span>
+                        <span class="block text-[11px] truncate" style="color:var(--text-muted)">${it.bookingNo || '—'} · ${it.vesselVoy || 'Chưa có tàu'}${typeStr ? ' · ' + typeStr : ''}${drop}</span>
+                    </span>
+                    <span class="text-[11px] font-bold whitespace-nowrap" style="color:var(--text-secondary)">${it.qtyCont || 0} cont</span>
+                </label>`;
+            }).join('');
+            _eeSyncCheckAll(list);
+        }
+        function eeToggleOne(id, on) {
+            if (on) _eeSelected.add(id); else _eeSelected.delete(id);
+            _eeUpdateUI(); _eeSyncCheckAll(_eeFiltered());
+        }
+        function eeToggleAll(on) {
+            const list = _eeFiltered();
+            list.forEach(it => { if (on) _eeSelected.add(it.id); else _eeSelected.delete(it.id); });
+            document.querySelectorAll('#ee-list .ee-check').forEach(cb => { cb.checked = on; });
+            _eeUpdateUI();
+        }
+        function _eeSyncCheckAll(list) {
+            const all = list.length > 0 && list.every(it => _eeSelected.has(it.id));
+            const cbAll = document.getElementById('ee-check-all');
+            if (cbAll) cbAll.checked = all;
+        }
+        function _eeUpdateUI() {
+            const n = _eeSelected.size;
+            const cnt = document.getElementById('ee-count');
+            if (cnt) cnt.innerText = 'Đã chọn: ' + n;
+            const btn = document.getElementById('ee-confirm-btn');
+            if (btn) {
+                btn.disabled = (n === 0);
+                btn.style.background = n === 0 ? '#94a3b8' : '#0ea5e9';
+                btn.style.cursor = n === 0 ? 'not-allowed' : 'pointer';
+                btn.innerHTML = `<i class="fa-solid fa-file-arrow-up"></i> Xuất ${n > 0 ? n + ' Lô' : 'Lô Đã Chọn'}`;
+            }
+        }
+        function eeExportSelected() {
+            const ids = Array.from(_eeSelected);
+            if (ids.length === 0) { showToast('⚠️ Chưa chọn lô nào', 'error'); return; }
+            const idSet = new Set(ids);
+            const rows = dbData.filter(it => idSet.has(it.id));
+            closeEportExport();
+            exportEport(rows);
+        }
+        function eeExportAll() {
+            const rows = dbData.slice();
+            if (rows.length === 0) { showToast('📭 Không có lô hàng nào!', 'error'); return; }
+            closeEportExport();
+            exportEport(rows);
+        }
+
+        // Xuất file Eport cho danh sách lô được truyền vào (hoặc lấy từ checkbox bảng nếu không truyền)
+        function exportEport(rowsArg) {
+            let selectedRows;
+            if (Array.isArray(rowsArg)) {
+                selectedRows = rowsArg;
+            } else {
+                const checked = [...document.querySelectorAll('.eport-check:checked')];
+                if (checked.length === 0) {
+                    showToast('⚠️ Hãy tích chọn lô hàng cần khai Eport!', 'error');
+                    return;
+                }
+                const checkedIds = checked.map(cb => cb.id.replace('eport-', ''));
+                selectedRows = dbData.filter(item => checkedIds.includes(item.id));
+            }
+            if (!selectedRows || selectedRows.length === 0) {
+                showToast('⚠️ Không có lô hàng nào để xuất!', 'error');
                 return;
             }
-
-            const checkedIds = checked.map(cb => cb.id.replace('eport-', ''));
-            const selectedRows = dbData.filter(item => checkedIds.includes(item.id));
 
             // Group by dropOff location
             const catLaiRows = selectedRows.filter(r => (r.dropOff || '').toLowerCase().includes('cát lái') || (r.dropOff || '').toLowerCase().includes('cat lai'));
