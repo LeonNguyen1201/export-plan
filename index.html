@@ -2320,22 +2320,33 @@
         [data-theme="dark"] #vessel-reschedule-modal [style*="--text-muted"]     { color: #cbd5e1 !important; }
         #vr-vessel-list button:hover { background: rgba(14,165,233,0.10) !important; }
         #vr-vessel-list button:last-child { border-bottom: none !important; }
-        /* (Fix) 2 ô ETD / Cut-off không đè nhau: cho phép cell co lại + input không tràn */
-        #vr-edit-block .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-        #vr-edit-block .grid > div { min-width: 0; }
-        #vr-edit-block input { width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0; }
+        /* (Fix) 2 ô ETD / Cut-off không đè nhau + input iPad không tràn */
+        #vr-edit-block .grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+        #vr-edit-block .grid > div { min-width: 0 !important; }
+        #vr-edit-block input,
+        #vessel-reschedule-modal input[type="date"],
+        #vessel-reschedule-modal input[type="datetime-local"],
+        #vessel-reschedule-modal input[type="text"] {
+            width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;
+            min-width: 0 !important; height: 38px !important; -webkit-appearance: none; appearance: none;
+            font-size: 12px !important;
+        }
         /* (Fix Light Mode) ép chữ rõ cho mọi text trong khối chọn tàu */
-        #vessel-reschedule-modal, #vessel-reschedule-modal * { -webkit-text-fill-color: initial; }
         #vessel-reschedule-modal #vr-edit-block { color: #0f172a; }
         [data-theme="dark"] #vessel-reschedule-modal #vr-edit-block { color: #f1f5f9; }
         #vessel-reschedule-modal input { color: var(--text-primary) !important; }
         /* (Fix) Option trong Export modal có ô nhập (Theo tháng / Khoảng TG): căn từ trên,
-           ô nhập không tràn ra ngoài viền bo tròn của option. */
+           ô nhập không tràn / không cao bất thường trên iPad Safari. */
         #export-plan-modal label.flex { align-items: flex-start !important; }
         #export-plan-modal label.flex > input[type="radio"] { margin-top: 2px; flex-shrink: 0; }
         #export-plan-modal #ep-month-input,
-        #export-plan-modal #ep-range-inputs { box-sizing: border-box; max-width: 100%; }
-        #export-plan-modal #ep-range-inputs input { min-width: 0; }
+        #export-plan-modal #ep-from,
+        #export-plan-modal #ep-to {
+            box-sizing: border-box !important; max-width: 100% !important; width: 100% !important;
+            height: 36px !important; -webkit-appearance: none; appearance: none; font-size: 12px !important;
+        }
+        #export-plan-modal #ep-range-inputs { box-sizing: border-box; max-width: 100%; flex-wrap: nowrap; }
+        #export-plan-modal #ep-range-inputs input { min-width: 0 !important; }
 
         /* Checkbox accent */
         input[type="checkbox"] { accent-color: #3b82f6; }
@@ -3743,8 +3754,8 @@
                     <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3">
                         <i class="fa-solid fa-triangle-exclamation text-xl"></i>
                     </div>
-                    <h3 class="text-base font-bold text-slate-800 mb-2" id="modal-title">Xác nhận tác vụ</h3>
-                    <p class="text-xs text-slate-500" id="modal-desc">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+                    <h3 class="text-base font-bold mb-2" id="modal-title" style="color:#0f172a">Xác nhận tác vụ</h3>
+                    <p class="text-sm leading-relaxed" id="modal-desc" style="color:#334155;white-space:pre-line">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
                 </div>
                 <div class="bg-slate-50 px-5 py-3 flex justify-end space-x-2">
                     <button id="modal-btn-cancel" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-all">Hủy bỏ</button>
