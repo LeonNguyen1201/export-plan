@@ -1616,19 +1616,17 @@
             }
 
             /* (Mục 3) Mỗi dòng lô — bỏ HOÀN TOÀN khung hộp bao ngoài, chỉ ngăn cách bằng vạch mảnh.
-               (Mục 2) Timeline được kéo LÊN nằm CÙNG HÀNG với ngày Đóng hàng/ETD — lấp khoảng trống bên phải,
-               ngang hàng với thông tin lô (đúng vị trí mũi tên đỏ). */
+               iPhone layout (mặc định): timeline NẰM DƯỚI 2 ngày → 3 hàng (po · ngày · timeline). */
             #gantt-rows-container > .grid.grid-cols-12 {
                 display: grid !important;
                 grid-template-columns: auto 1fr !important;
                 grid-template-areas:
                     "po       po"
-                    "stuff    timeline"
-                    "etd      timeline" !important;
+                    "stuff    etd"
+                    "timeline timeline" !important;
                 column-gap: 14px !important;
-                row-gap: 4px !important;
+                row-gap: 7px !important;
                 padding: 10px 4px !important;
-                align-items: center !important;
                 /* KHÔNG còn card frame — chỉ có 1 đường mảnh phân cách giữa các lô */
                 border: none !important;
                 background: transparent !important;
@@ -1703,37 +1701,61 @@
                 letter-spacing: 0.04em;
             }
 
-            /* Con 4 — Timeline : nằm cùng hàng với ngày (grid-area: timeline), căn giữa dọc */
+            /* Con 4 — Timeline : full ngang một dải dưới ngày (iPhone layout mặc định) */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
-                display: flex !important;
-                align-items: center !important;
+                display: block !important;
                 width: 100% !important;
-                padding: 0 0 0 4px !important;
-                margin-top: 0;
+                padding: 4px 0 2px !important;
+                margin-top: 1px;
                 background: transparent !important;
                 border-radius: 0;
                 position: relative;
-                min-height: 44px;
+                min-height: 28px;
             }
             [data-theme="dark"] #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
                 background: transparent !important;
             }
-            /* Bar chính — KÉO ĐẦY chiều ngang vùng timeline (lấp khoảng trống bên phải, ngang lô) */
+            /* Bar chính của timeline — giữ logic JS gốc (margin-left/width theo global timeline)
+               + chỉ tăng chiều cao cho dễ nhìn. KHÔNG ép width 100% → vạch "hôm nay" đặt đúng vị trí. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 height: 22px !important;
-                margin-left: 0 !important;
-                width: 100% !important;
                 min-width: 0 !important;
-            }
-            /* Ẩn vạch "hôm nay" trên bar (bar full-width → marker theo % global sẽ sai vị trí;
-               ngày Đóng hàng/ETD đã in rõ bên trái). */
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
-                display: none !important;
             }
             /* Khu cuộn ngoài — bỏ luôn padding để bar dài bằng đúng card "Sơ Đồ Gantt" */
             #gantt-rows-container {
                 padding: 4px 2px !important;
                 gap: 0 !important;
+            }
+        }
+
+        /* ══════════════════════════════════════════
+           (Mục 2 — iPad-dọc RIÊNG) Timeline kéo LÊN nằm cùng hàng với ngày Đóng hàng/ETD,
+           lấp khoảng trống bên phải (vị trí mũi tên đỏ). CHỈ áp dụng iPad-dọc, iPhone KHÔNG đụng.
+        ══════════════════════════════════════════ */
+        @media (min-width: 641px) and (max-width: 1023px) and (orientation: portrait) {
+            #gantt-rows-container > .grid.grid-cols-12 {
+                grid-template-areas:
+                    "po       po"
+                    "stuff    timeline"
+                    "etd      timeline" !important;
+                row-gap: 4px !important;
+                align-items: center !important;
+            }
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
+                display: flex !important;
+                align-items: center !important;
+                padding: 0 0 0 4px !important;
+                margin-top: 0 !important;
+                min-height: 44px !important;
+            }
+            /* iPad-dọc: bar full-width vùng timeline (lấp khoảng trống bên phải).
+               Vạch "hôm nay" ẩn vì bar đã full-width, marker theo % global sai vị trí. */
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
+                display: none !important;
             }
         }
 
