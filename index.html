@@ -1758,9 +1758,13 @@
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
                 display: block !important;
             }
+        }
 
-            /* (Mục 2) Header LOGO trên iPad-dọc — tránh "Export Plan Tracker" bị xuống 3 dòng.
-               Thu nhỏ title vừa đủ + cho phép wrap 2 dòng tối đa, căn giữa dọc với icon. */
+        /* ══════════════════════════════════════════
+           (Mục 2) Header LOGO trên iPad (CẢ dọc & ngang) — tránh "Export Plan Tracker"
+           bị wrap 2-3 dòng không cân với icon. Thu nhỏ title vừa đủ, giữ 1 dòng.
+        ══════════════════════════════════════════ */
+        @media (min-width: 641px) and (max-width: 1279px) {
             .logo-block { gap: 14px !important; align-items: center !important; }
             .logo-mark  { width: 56px !important; height: 56px !important; border-radius: 16px !important; flex-shrink: 0; }
             .logo-ship  { font-size: 26px !important; }
