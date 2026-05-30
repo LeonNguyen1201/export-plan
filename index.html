@@ -9570,17 +9570,39 @@ ${buildAIContext()}
                         btn.classList.toggle('active', btn.getAttribute('data-tab-target') === _activeTab);
                     });
                 }
-                // đặt lại vị trí viên kính (sau khi layout ổn định)
-                requestAnimationFrame(() => positionTabIndicator(_activeTab, false));
+                _repositionIndicatorSafe();
             } else {
                 document.body.classList.remove('tabmode','tabmode-overview','tabmode-plan','tabmode-tools');
             }
         }
+
+        // Định vị lại viên kính AN TOÀN khi layout vừa đổi (xoay máy, đổi cỡ, bật tab mode):
+        // ẩn tạm + TẮT transition + đợi layout ổn định (double rAF + timeout) rồi mới đo & hiện
+        // → tránh viên kính bị "giãn dính" do đo nhầm lúc bottom-nav vừa hiện.
+        let _reposTO = null;
+        function _repositionIndicatorSafe() {
+            const ind = document.getElementById('bn-indicator');
+            if (!ind) return;
+            if (!_tabMQ.matches) return;     // chỉ khi đang ở chế độ tab
+            ind.style.transition = 'none';
+            ind.style.opacity = '0';
+            ind.classList.remove('bn-morph');   // huỷ animation giãn nếu đang chạy
+            if (_reposTO) clearTimeout(_reposTO);
+            const doPos = () => {
+                positionTabIndicator(_activeTab, false);
+                ind.style.opacity = '';
+                requestAnimationFrame(() => { ind.style.transition = ''; });
+            };
+            requestAnimationFrame(() => requestAnimationFrame(doPos));
+            _reposTO = setTimeout(doPos, 320);   // dự phòng cho iOS cập nhật layout trễ khi xoay
+        }
+
         _tabMQ.addEventListener && _tabMQ.addEventListener('change', e => _applyTabMode(e.matches));
         window.addEventListener('load', () => { try { _applyTabMode(_tabMQ.matches); } catch(e){} });
         try { _applyTabMode(_tabMQ.matches); } catch(e){}
-        // căn lại viên kính khi xoay/đổi cỡ
-        window.addEventListener('resize', () => { if (_tabMQ.matches) positionTabIndicator(_activeTab, false); }, { passive: true });
+        // căn lại viên kính khi xoay/đổi cỡ (an toàn, không bị dính)
+        window.addEventListener('resize', _repositionIndicatorSafe, { passive: true });
+        window.addEventListener('orientationchange', () => { setTimeout(_repositionIndicatorSafe, 80); });
 
         // ════ VUỐT KÉO viên kính giữa các tab (touch) ════
         (function initTabDrag(){
