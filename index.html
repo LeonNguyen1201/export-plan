@@ -5922,7 +5922,6 @@
             const poNo = document.getElementById('po-no').value.trim();
             const type = document.getElementById('type').value;
             const packaging = document.getElementById('packaging').value;
-            const qtyCont = parseInt(document.getElementById('qty-cont').value) || 1;
             const bookingNo = document.getElementById('booking-no').value.trim();
             const vesselVoy = document.getElementById('vessel-voy').value.trim();
             const dropOff = document.getElementById('drop-off').value.trim();
@@ -5947,6 +5946,11 @@
                 seal: sealLines[i] || '',
                 vgm:  vgmLines[i]  || ''
             })) : [];
+
+            // (Mục 1) Nếu có nhập danh sách Cont ở dưới → TỰ ĐẾM số lượng cont, đè lên QTY
+            // (phòng khi quên nhập tay QTY ở trên). Không có cont thì giữ QTY gõ tay.
+            let qtyCont = parseInt(document.getElementById('qty-cont').value) || 1;
+            if (maxRows > 0) qtyCont = maxRows;
 
             const editId = editIdInput.value;
             const roomVal = localStorage.getItem('carot_cloud_room');
@@ -5982,14 +5986,26 @@
                 };
                 updatedRecord = applyBusinessRules(updatedRecord);
 
-                // 1) Cập nhật local + render NGAY
-                const index = dbData.findIndex(item => item.id === editId);
-                if (index !== -1) dbData[index] = updatedRecord;
-                saveLocalData();
-                renderData();
-                showToast(roomVal ? "✅ Đã lưu · đang đồng bộ Cloud..." : "Cập nhật lô hàng thành công!");
-                // 2) Đẩy cloud nền
-                pushCloud(editId, updatedRecord);
+                // (Mục 2) HỎI XÁC NHẬN trước khi lưu thay đổi
+                showConfirmModal(
+                    'Lưu thay đổi lô hàng?',
+                    `Xác nhận lưu các thay đổi cho lô "${poNo}"? Dữ liệu cũ sẽ bị ghi đè.`,
+                    () => {
+                        // 1) Cập nhật local + render NGAY
+                        const index = dbData.findIndex(item => item.id === editId);
+                        if (index !== -1) dbData[index] = updatedRecord;
+                        saveLocalData();
+                        renderData();
+                        showToast(roomVal ? "✅ Đã lưu · đang đồng bộ Cloud..." : "Cập nhật lô hàng thành công!");
+                        // 2) Đẩy cloud nền
+                        pushCloud(editId, updatedRecord);
+                        // reset form sau khi lưu
+                        resetForm();
+                        closeMobileFormIfOpen();
+                    },
+                    null
+                );
+                return;
             } else {
                 let newRecord = applyBusinessRules({
                     id: 'ID-' + Date.now(),
@@ -6024,8 +6040,19 @@
 
         form.addEventListener('submit', handleSubmit);
 
-        // Đổ thông tin ra form khi bấm Sửa
+        // Đổ thông tin ra form khi bấm Sửa — (Mục 2) HỎI XÁC NHẬN trước khi cho sửa
         function editRecord(id) {
+            const record = dbData.find(item => item.id === id);
+            if (!record) return;
+            showConfirmModal(
+                'Chỉnh sửa lô hàng?',
+                `Bạn sắp chỉnh sửa lô "${record.poNo || '(không tên)'}". Mọi thay đổi sẽ ghi đè dữ liệu hiện tại. Tiếp tục?`,
+                () => { _doEditRecord(id); },
+                null
+            );
+        }
+
+        function _doEditRecord(id) {
             const record = dbData.find(item => item.id === id);
             if (!record) return;
 
