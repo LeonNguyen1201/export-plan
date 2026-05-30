@@ -1089,7 +1089,8 @@
             .app-header {
                 transition: transform 0.85s cubic-bezier(0.16,1,0.3,1),
                             opacity 0.7s cubic-bezier(0.16,1,0.3,1);
-                will-change: transform, opacity;
+                /* KHÔNG đặt will-change thường trực: sticky + backdrop-filter + will-change
+                   khiến iOS tính lại blur mỗi khung hình khi cuộn → khựng. */
             }
             .app-header.header-hidden {
                 transform: translateY(-100%);
@@ -9200,10 +9201,15 @@ ${buildAIContext()}
             const SHOW_TRIGGER  = 36;  // cuộn LÊN tổng ≥36px thì hiện lại
             const TOP_LOCK      = 64;  // gần đỉnh trang → luôn hiện
 
+            let _wcTimer = null;
             function setHidden(v) {
                 if (v === hidden) return;     // KHÔNG toggle lại nếu trạng thái không đổi → hết nhấp nháy
                 hidden = v;
+                // bật will-change CHỈ trong lúc animate, xong gỡ ngay để cuộn không bị nặng
+                header.style.willChange = 'transform, opacity';
                 header.classList.toggle('header-hidden', v);
+                if (_wcTimer) clearTimeout(_wcTimer);
+                _wcTimer = setTimeout(() => { header.style.willChange = 'auto'; }, 900);
             }
 
             function onScroll() {
