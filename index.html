@@ -2033,6 +2033,20 @@
             body.tabmode-overview #sec-overview.tab-pane[data-tab="overview"] { display: grid !important; }
             /* bỏ khoảng cách thừa của section chart khi đứng một mình */
             body.tabmode #chart-section { margin-top: 0 !important; }
+
+            /* FIX: #sec-tools (tab "tools") nằm BÊN TRONG #main-content-column (tab "plan").
+               Khi ở tab Tiện Ích, cho cột này hiện lại NHƯNG chỉ để lộ #sec-tools,
+               ẩn filter + bảng kế hoạch (các con khác). */
+            body.tabmode-tools #main-content-column[data-tab="plan"] {
+                display: block !important;
+                animation: none !important;
+                margin: 0 !important; padding: 0 !important;
+            }
+            body.tabmode-tools #main-content-column > *:not(#sec-tools) { display: none !important; }
+            body.tabmode-tools #sec-tools {
+                display: block !important;
+                animation: tab-fade-in 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+            }
         }
         @keyframes tab-fade-in {
             from { opacity: 0; transform: translateY(8px); }
