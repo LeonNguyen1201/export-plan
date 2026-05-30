@@ -2199,22 +2199,8 @@
            Nút 3 gạch ở header → mở form toàn màn hình → icon đổi thành X.
            Bố cục mobile gọn gàng, cân đối; UI/animation giữ như bản web.
            ────────────────────────────────────────────── */
-        .mobile-form-toggle {
-            display: none;
-            align-items: center; gap: 7px;
-            padding: 8px 13px; border-radius: 9999px;
-            font-size: 12.5px; font-weight: 800;
-            color: #fff; cursor: pointer;
-            background: linear-gradient(135deg,#2563eb,#4f46e5);
-            border: 1px solid rgba(255,255,255,0.25);
-            box-shadow: 0 6px 16px -6px rgba(37,99,235,0.6), inset 0 1px 0 rgba(255,255,255,0.3);
-            transition: transform 0.16s ease, box-shadow 0.18s ease, filter 0.16s ease;
-        }
-        .mobile-form-toggle:hover { transform: translateY(-1px); filter: brightness(1.05); }
-        .mobile-form-toggle:active { transform: scale(0.97); }
 
         @media (max-width: 1279px) {
-            .mobile-form-toggle { display: inline-flex; }
             /* Form ẩn mặc định trên mobile (đã gom vào nút Pop-up) */
             #form-column { display: none; }
             /* Khi mở: overlay toàn màn hình, cuộn được */
@@ -2244,8 +2230,6 @@
             .ql-link-main { font-size: 12px; }
             .ql-tool { font-size: 9px; padding: 6px 3px; }
             .ql-tool i { font-size: 13px; }
-            /* Header gọn, căn giữa hài hoà */
-            .mobile-form-toggle { padding: 7px 12px; font-size: 12px; }
         }
 
         /* (Mục 2) KPI trên iPad — 4 thẻ vẫn 1 hàng nhưng mỗi thẻ hẹp (~180-230px).
@@ -2787,58 +2771,13 @@
             }
         }
 
-        /* (5) NÚT NHẬP LIỆU → FAB tròn chỉ-icon, góc phải-dưới header, có animation nở/thu */
-        .mobile-form-toggle .mft-label { display: inline; }
-        @media (max-width: 1279px) {
-            .mobile-form-toggle .mft-label { display: none; }   /* bỏ chữ "Nhập liệu" */
-            .mobile-form-toggle {
-                width: 38px; height: 38px; padding: 0 !important;
-                border-radius: 50%; gap: 0;
-                justify-content: center;
-                font-size: 15px;
-                box-shadow: 0 6px 16px -6px rgba(37,99,235,0.7), inset 0 1px 0 rgba(255,255,255,0.35);
-                transition: transform .32s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, background .2s ease;
-            }
-            .mobile-form-toggle i { transition: transform .32s cubic-bezier(.34,1.56,.64,1); }
-        }
-        @media (max-width: 768px) {
-            /* (6·2) thu nhỏ, nằm INLINE ngang hàng với User + Dark toggle */
-            .mobile-form-toggle {
-                position: static;
-                width: 36px; height: 36px;
-                font-size: 14px;
-                flex: 0 0 auto;
-            }
-        }
-        /* animation nở to khi MỞ, thu nhỏ khi ĐÓNG (toggle qua class .is-open) */
-        .mobile-form-toggle.is-open {
-            transform: scale(1.12);
-            background: linear-gradient(135deg,#ef4444,#dc2626);
-            box-shadow: 0 8px 20px -6px rgba(220,38,38,0.7), inset 0 1px 0 rgba(255,255,255,0.35);
-        }
-        .mobile-form-toggle.is-open i { transform: rotate(180deg); }
-        .mobile-form-toggle.mft-pop { animation: mft-pop-kf .42s cubic-bezier(.34,1.56,.64,1); }
-        @keyframes mft-pop-kf {
-            0%   { transform: scale(0.6); }
-            55%  { transform: scale(1.22); }
-            100% { transform: scale(1); }
-        }
-        .mobile-form-toggle.is-open.mft-pop { animation: mft-pop-open-kf .42s cubic-bezier(.34,1.56,.64,1); }
-        @keyframes mft-pop-open-kf {
-            0%   { transform: scale(0.7) rotate(-30deg); }
-            55%  { transform: scale(1.28) rotate(8deg); }
-            100% { transform: scale(1.12) rotate(0); }
-        }
-
         /* (5) Cân đối CHIỀU CAO mép ngoài các nút điều khiển trên header mobile bằng nhau (36px) */
         @media (max-width: 768px) {
             .app-header .chip-pill,
             .app-header .user-switch { min-height: 36px !important; height: 36px !important; }
             .app-header .dm-toggle { height: 36px; display: inline-flex; align-items: center; }
             .app-header .dm-toggle .dm-track { transform: none; }
-            /* nút hamburger cũng 36px → đồng bộ */
-            .mobile-form-toggle { width: 36px !important; height: 36px !important; }
-            /* nhóm User + Dark + Hamburger đi chung 1 hàng */
+            /* nhóm User + Dark đi chung 1 hàng */
             .user-dm-group { gap: 8px !important; flex-wrap: nowrap; flex-shrink: 1; min-width: 0; }
             .app-header .flex.items-center.flex-wrap { padding-right: 0 !important; }
             /* User switch co lại để cả hàng (User + Dark + Hamburger) vừa màn hình hẹp */
@@ -3503,20 +3442,24 @@
         transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1),
                     box-shadow 0.45s cubic-bezier(0.25, 1, 0.5, 1),
                     background-color 0.45s cubic-bezier(0.25, 1, 0.5, 1) !important;
-        will-change: transform;
+        /* (PERF) KHÔNG đặt will-change thường trực — chỉ bật khi hover (web) để đỡ tốn VRAM trên iPad/iPhone */
     }
-    .card:hover { transform: translateY(-2px) scale(1.005); }
+    @media (hover: hover) and (pointer: fine) {
+        .card:hover { transform: translateY(-2px) scale(1.005); will-change: transform; }
+    }
     .ai-popup, .ai-popup-inner, .ql-popover, .form-lib-modal {
         transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1),
                     opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
-        will-change: transform, opacity;
     }
-    .form-cta, .form-btn, .form-btn-cancel, .mobile-form-toggle, .ai-float-btn {
+    .form-cta, .form-btn, .form-btn-cancel, .ai-float-btn {
         transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
                     box-shadow 0.35s cubic-bezier(0.25, 1, 0.5, 1),
                     background 0.3s ease, filter 0.3s ease !important;
-        will-change: transform;
     }
+    @media (hover: hover) and (pointer: fine) {
+        .form-cta:hover, .form-btn:hover, .form-btn-cancel:hover, .ai-float-btn:hover { will-change: transform; }
+    }
+    .form-cta:active, .form-btn:active, .form-btn-cancel:active, .ai-float-btn:active { will-change: transform; }
     #table-body tr { will-change: auto; }
 
     /* ════════════════════════════════════════════════════════════════
@@ -3778,7 +3721,7 @@
     /* (PERF-3) Hover translate dùng transform (GPU layer), KHÔNG dùng top/margin.
        Đã sẵn translateY/scale ở .card:hover — thêm backface-visibility để Chrome
        Mobile/Safari iOS giữ layer ổn định, không nhấp nháy. */
-    .card, .ql-box, .kpi-flip, .form-cta, .ai-float-btn, .mobile-form-toggle {
+    .card, .ql-box, .kpi-flip, .form-cta, .ai-float-btn {
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
     }
@@ -3817,6 +3760,19 @@
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
         }
+    }
+
+    /* (PERF/A11Y) Tôn trọng "Giảm chuyển động" của hệ điều hành — máy yếu cũng mượt hơn:
+       rút ngắn mọi transition/animation, tắt hiệu ứng nhấc thẻ khi hover. */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+            scroll-behavior: auto !important;
+        }
+        .card:hover { transform: none !important; }
+        .app-header, #bottom-nav { transition: opacity 0.2s linear !important; }
     }
 
     </style>
@@ -5128,7 +5084,19 @@
             indicator.style.width = active.offsetWidth + 'px';
             indicator.classList.add('ready');
         }
-        window.addEventListener('resize', () => moveUserIndicator());
+        // (Tối ưu) Gộp các việc cần làm khi resize/orientation vào MỘT handler debounced
+        // → tránh nhiều listener chạy đồng thời gây giật khi xoay máy / đổi cỡ cửa sổ.
+        let _uiResizeTO = null;
+        function _onUiResize() {
+            clearTimeout(_uiResizeTO);
+            _uiResizeTO = setTimeout(() => {
+                try { moveUserIndicator(); } catch(e){}
+                try { if (typeof updateFreezeOffsets === 'function') updateFreezeOffsets(); } catch(e){}
+                try { if (typeof _qpOpenId !== 'undefined' && _qpOpenId) closeAllQuickPopovers(); } catch(e){}
+            }, 120);
+        }
+        window.addEventListener('resize', _onUiResize, { passive: true });
+        window.addEventListener('orientationchange', _onUiResize, { passive: true });
         // (2) Khi xoay ngang/dọc hoặc đổi kích thước qua mốc 820px → vẽ lại đúng chế độ bảng/thẻ
         let _wasMobileView = window.matchMedia('(max-width: 820px)').matches;
         let _resizeRenderTimer = null;
@@ -5382,23 +5350,13 @@
             }
         }
 
-        async function syncUp() { /* Firebase realtime tự xử lý */ }
-
+        
         // MỤC 15 · Mở/đóng form Export Data Entry dạng pop-up toàn màn hình (mobile)
         function toggleMobileForm() {
             const open = document.body.classList.toggle('mobile-form-active');
-            const icon = document.getElementById('mobile-form-toggle-icon');
-            if (icon) { icon.classList.toggle('fa-bars', !open); icon.classList.toggle('fa-xmark', open); }
-            const btn = document.getElementById('mobile-form-toggle');
-            if (btn) {
-                btn.title = open ? 'Đóng bảng nhập liệu' : 'Mở bảng nhập liệu Export Data Entry';
-                // (5) animation nở to khi mở / thu nhỏ khi đóng
-                btn.classList.toggle('is-open', open);
-                btn.classList.remove('mft-pop');
-                void btn.offsetWidth;          // ép reflow để chạy lại keyframe
-                btn.classList.add('mft-pop');
-                setTimeout(() => btn.classList.remove('mft-pop'), 460);
-            }
+            // Tô sáng mục "Nhập Liệu" ở bottom-nav khi form đang mở
+            const entry = document.querySelector('#bottom-nav .bn-item-entry');
+            if (entry) entry.classList.toggle('active', open);
             if (open) { try { document.getElementById('form-column').scrollTop = 0; } catch(e){} }
         }
         function closeMobileFormIfOpen() {
@@ -5793,9 +5751,7 @@
         }
 
         // (3) Đã bỏ phân trang mobile — các hàm này giữ làm no-op để không vỡ chỗ gọi cũ.
-        function loadMoreMobile() {}
-        function _ensureMobileAutoLoad() {}
-        function resetMobilePaging() {}
+                        function resetMobilePaging() {}
 
         // (Mục 4) PAGINATION — render nút trang theo cửa sổ trượt 1..5 … last (tự co giãn).
         function renderPlanPagination() {
@@ -6320,41 +6276,7 @@
             showToast(`🗑️ Đã xóa ${ids.length} lô hàng!`, 'error');
         }
 
-        async function deleteAllRecords() {
-            if (!dbData || dbData.length === 0) {
-                showToast("📭 Không có lô hàng nào để xóa!", "error");
-                return;
-            }
-            const total = dbData.length;
-            showConfirmModal(
-                `Xóa toàn bộ ${total} lô hàng?`,
-                `⚠️ Thao tác này KHÔNG THỂ HOÀN TÁC. Toàn bộ ${total} lô hàng trong kế hoạch sẽ bị xóa vĩnh viễn (kể cả trên Cloud nếu đang kết nối). Anh có chắc chắn?`,
-                async () => {
-                    const roomVal = localStorage.getItem('carot_cloud_room');
-                    if (roomVal) {
-                        try {
-                            const colRef = roomColRef(roomVal);
-                            const snap = await colRef.get();
-                            const batch = fbDb.batch();
-                            snap.forEach(d => batch.delete(d.ref));
-                            await batch.commit();
-                            showToast(`☁️ Đã xóa toàn bộ ${total} lô hàng khỏi Cloud!`, "error");
-                        } catch (err) {
-                            console.error(err);
-                            showToast("Lỗi xóa Cloud: " + err.message, "error");
-                        }
-                    } else {
-                        dbData = [];
-                        saveLocalData();
-                        renderData();
-                        showToast(`Đã xóa toàn bộ ${total} lô hàng!`, "error");
-                    }
-                },
-                null,
-                { twoStep: true }
-            );
-        }
-
+        
         // Xóa lô hàng
         function deleteRecord(id) {
             showConfirmModal(
@@ -6520,7 +6442,7 @@
         });
         // cuộn / đổi kích thước → đóng (tránh menu "trôi" lệch nút)
         window.addEventListener('scroll', () => { if (_qpOpenId) closeAllQuickPopovers(); }, true);
-        window.addEventListener('resize', () => { if (_qpOpenId) closeAllQuickPopovers(); });
+        // (đã gộp vào _onUiResize — đóng popover khi resize)
 
         function scrollToChart() {
             const el = document.getElementById('chart-section');
@@ -7483,8 +7405,7 @@
         }
 
         // Xuất file Excel (Hỗ trợ Transit Port)
-        function exportToExcel() { openExportPlanModal(); }
-
+        
         function exportToExcelWithData(dataRows, modeLabel) {
             const totalPo = dataRows.length;
             const totalCont = dataRows.reduce((sum, item) => sum + parseInt(item.qtyCont || 0), 0);
@@ -8300,7 +8221,7 @@ ${buildAIContext()}
             if (!firstTh) return;
             document.documentElement.style.setProperty('--freeze2-left', firstTh.offsetWidth + 'px');
         }
-        window.addEventListener('resize', updateFreezeOffsets);
+        // (đã gộp vào _onUiResize — cập nhật offset cột freeze khi resize)
 
         function restoreColWidths() {
             try {
@@ -9057,13 +8978,7 @@ ${buildAIContext()}
             closeEportExport();
             exportEport(rows);
         }
-        function eeExportAll() {
-            const rows = dbData.slice();
-            if (rows.length === 0) { showToast('📭 Không có lô hàng nào!', 'error'); return; }
-            closeEportExport();
-            exportEport(rows);
-        }
-
+        
         // Xuất file Eport cho danh sách lô được truyền vào (hoặc lấy từ checkbox bảng nếu không truyền)
         function exportEport(rowsArg) {
             let selectedRows;
@@ -9358,7 +9273,16 @@ ${buildAIContext()}
 
             // Chạy bộ đếm giờ sống động 2026 ngay từ đầu
             updateClock();
-            setInterval(updateClock, 1000);
+            // (PERF) Đồng hồ: tạm dừng khi tab ẩn → đỡ tốn pin/CPU; chạy lại khi quay lại tab
+            let _clockTimer = setInterval(updateClock, 1000);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(_clockTimer); _clockTimer = null;
+                } else if (!_clockTimer) {
+                    updateClock();
+                    _clockTimer = setInterval(updateClock, 1000);
+                }
+            });
 
             loadDemoData();
             
@@ -9479,5 +9403,3 @@ ${buildAIContext()}
     </div>
 </body>
 </html>
-<style id="__om-edit-overrides">
-</style>
