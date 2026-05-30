@@ -1870,45 +1870,61 @@
             gap: 2px;
             padding: 7px 6px;
             border-radius: 30px;
-            background: rgba(255,255,255,0.45);
-            backdrop-filter: blur(26px) saturate(200%);
-            -webkit-backdrop-filter: blur(26px) saturate(200%);
-            border: 1px solid rgba(255,255,255,0.6);
-            box-shadow: 0 12px 34px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
-            touch-action: pan-y;   /* cho phép vuốt ngang để kéo tab, vẫn cuộn dọc được */
+            /* (Liquid glass) nền RẤT trong suốt → thấy nội dung trang xuyên qua */
+            background: rgba(255,255,255,0.20);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.45);
+            box-shadow: 0 12px 34px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.55);
+            touch-action: pan-y;   /* vuốt ngang kéo tab, vẫn cuộn dọc được */
         }
-        /* VIÊN KÍNH TRƯỢT — chạy mượt từ tab này sang tab kia (liquid glass) */
+        /* VIÊN KÍNH TRƯỢT — trong suốt, chỉ làm SÁNG + nét hơn vùng được chọn (như thấu kính) */
         .bn-indicator {
             position: absolute;
-            top: 6px; left: 0;
-            height: calc(100% - 12px);
+            top: 5px; left: 0;
+            height: calc(100% - 10px);
             width: 0;                /* JS đặt width + transform theo tab active */
-            border-radius: 22px;
-            background: rgba(255,255,255,0.55);
-            backdrop-filter: blur(6px) brightness(1.18) saturate(1.6);
-            -webkit-backdrop-filter: blur(6px) brightness(1.18) saturate(1.6);
-            border: 1px solid rgba(255,255,255,0.85);
+            border-radius: 23px;
+            /* nền gần như trong suốt — KHÔNG dùng trắng đục */
+            background: linear-gradient(160deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0.16) 100%);
+            backdrop-filter: blur(0.5px) brightness(1.22) saturate(1.7) contrast(1.04);
+            -webkit-backdrop-filter: blur(0.5px) brightness(1.22) saturate(1.7) contrast(1.04);
+            border: 1px solid rgba(255,255,255,0.9);
             box-shadow:
-                0 4px 14px rgba(15,23,42,0.18),
-                inset 0 1px 1px rgba(255,255,255,0.95),
-                inset 0 -2px 6px rgba(255,255,255,0.35);
+                0 5px 16px rgba(15,23,42,0.16),          /* bóng nổi */
+                inset 0 1.5px 1px rgba(255,255,255,1),    /* mép trên sáng (specular) */
+                inset 0 -4px 10px rgba(255,255,255,0.45), /* đáy hắt sáng */
+                inset 2px 0 6px rgba(255,255,255,0.3),
+                inset -2px 0 6px rgba(255,255,255,0.3);
             z-index: 0;
             pointer-events: none;
             transition: transform 0.46s cubic-bezier(0.22,1,0.36,1),
                         width 0.46s cubic-bezier(0.22,1,0.36,1);
         }
-        /* ánh khúc xạ cầu vồng mảnh ở viền (gợi chất liquid glass) */
+        /* lóa sáng chéo trên mặt kính (specular sheen) */
+        .bn-indicator::before {
+            content: "";
+            position: absolute; left: 8%; right: 8%; top: 6%;
+            height: 42%;
+            border-radius: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0));
+            filter: blur(1px);
+            opacity: 0.85;
+            pointer-events: none;
+        }
+        /* viền khúc xạ cầu vồng mảnh (gợi chất liquid glass) */
         .bn-indicator::after {
             content: "";
             position: absolute; inset: -1px;
             border-radius: inherit;
-            padding: 1px;
+            padding: 1.2px;
             background: linear-gradient(115deg,
-                rgba(56,189,248,0.55), rgba(255,255,255,0) 35%,
-                rgba(255,255,255,0) 65%, rgba(168,85,247,0.5));
+                rgba(56,189,248,0.7), rgba(255,255,255,0) 32%,
+                rgba(255,255,255,0) 64%, rgba(168,85,247,0.65));
             -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
             -webkit-mask-composite: xor; mask-composite: exclude;
-            opacity: 0.8;
+            opacity: 0.9;
+            pointer-events: none;
         }
         .bn-pill.bn-dragging .bn-indicator { transition: none; }   /* kéo thì bám ngón tay tức thì */
         .bn-item {
@@ -1936,11 +1952,11 @@
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-size: 21px; cursor: pointer;
-            background: rgba(255,255,255,0.45);
-            backdrop-filter: blur(26px) saturate(200%);
-            -webkit-backdrop-filter: blur(26px) saturate(200%);
-            border: 1px solid rgba(255,255,255,0.6);
-            box-shadow: 0 12px 34px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.20);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.45);
+            box-shadow: 0 12px 34px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.55);
             transition: transform 0.15s ease, color 0.3s ease, background 0.3s ease;
         }
         .bn-circle:active { transform: scale(0.9); }
@@ -1954,17 +1970,21 @@
         /* Dark mode — kính tối trong suốt */
         [data-theme="dark"] .bn-pill,
         [data-theme="dark"] .bn-circle {
-            background: rgba(17,24,39,0.55);
-            border-color: rgba(148,163,184,0.22);
-            box-shadow: 0 12px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+            background: rgba(17,24,39,0.34);
+            border-color: rgba(255,255,255,0.16);
+            box-shadow: 0 12px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
         }
         [data-theme="dark"] .bn-item { color: #94a3b8; }
         [data-theme="dark"] .bn-item.active { color: #e0f2fe; }
         [data-theme="dark"] .bn-indicator {
-            background: rgba(148,163,184,0.22);
-            border-color: rgba(255,255,255,0.35);
-            box-shadow: 0 4px 14px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.25);
+            background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 48%, rgba(255,255,255,0.10) 100%);
+            border-color: rgba(255,255,255,0.4);
+            box-shadow:
+                0 5px 16px rgba(0,0,0,0.4),
+                inset 0 1.5px 1px rgba(255,255,255,0.5),
+                inset 0 -4px 10px rgba(255,255,255,0.12);
         }
+        [data-theme="dark"] .bn-indicator::before { background: linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0)); }
         [data-theme="dark"] .bn-ai { color: #93c5fd; }
         [data-theme="dark"] .bn-entry { color: #67e8f9; }
         [data-theme="dark"] .bn-circle.active { background: rgba(147,197,253,0.18); color: #bfdbfe; }
