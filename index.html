@@ -1824,35 +1824,39 @@
             }
         }
 
-        /* iPad DỌC: KÉO cụm control LÊN ngang logo (cạnh "Logistics Control · 2026") để giảm độ dày header.
-           Logo trái — cụm control phải, căn TRÊN, xếp 2 dòng: (trên) user-switch + Dark · (dưới) đồng hồ + Cloud + Hamburger. */
+        /* iPad DỌC: KÉO cụm control LÊN ngang logo để giảm độ dày header.
+           Hàng trên: đồng hồ ngày tháng + Cloud + Hamburger · Hàng dưới: user-switch + Dark. Căn phải. */
         @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
-            /* quay lại hàng ngang, control căn lên đỉnh ngang với logo */
+            /* hàng ngang: logo trái — cụm control phải, căn lên đỉnh ngang logo */
             .app-header > div {
                 flex-direction: row !important;
                 align-items: flex-start !important;
                 justify-content: space-between !important;
                 gap: 16px !important;
             }
-            /* cụm control: KHÔNG full bề ngang nữa — co theo nội dung, nằm bên phải, xuống 2 dòng */
+            /* cụm control = GRID 2 hàng, căn phải */
             .app-header > div > div:last-child {
+                display: grid !important;
+                grid-template-columns: repeat(3, auto) !important;
+                justify-content: end !important;
+                align-items: center !important;
+                gap: 12px 10px !important;
                 width: auto !important;
-                flex-wrap: wrap !important;
-                justify-content: flex-end !important;
-                align-content: flex-start !important;
-                row-gap: 12px !important;
             }
-            /* hàng trên (trong cụm phải): user-switch + Dark — chiếm trọn bề ngang cụm, đẩy phải */
+            /* hàng trên: đồng hồ + Cloud + Hamburger (3 cột) */
+            .app-header .chip-clock          { order: 1 !important; }
+            .app-header #cloud-status-badge  { order: 2 !important; }
+            .app-header .mobile-form-toggle  { order: 3 !important; justify-self: end !important; }
+            /* hàng dưới: user-switch + Dark — span trọn 3 cột, đẩy về phải */
             .app-header .user-dm-group {
-                order: 1 !important;
-                width: 100% !important;
-                justify-content: flex-end !important;
+                order: 4 !important;
+                grid-column: 1 / -1 !important;
+                justify-self: end !important;
+                display: flex !important;
                 flex-wrap: nowrap !important;
+                justify-content: flex-end !important;
+                gap: 10px !important;
             }
-            /* hàng dưới (trong cụm phải): đồng hồ + Cloud + Hamburger — căn phải */
-            .app-header .chip-clock          { order: 2 !important; }
-            .app-header #cloud-status-badge  { order: 3 !important; }
-            .app-header .mobile-form-toggle  { order: 4 !important; }
         }
 
         /* ══════════════════════════════════════════
