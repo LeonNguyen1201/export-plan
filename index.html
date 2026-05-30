@@ -1799,6 +1799,32 @@
         }
 
         /* ══════════════════════════════════════════
+           (Mục 2b) Header GỌN GÀNG trên iPad DỌC — tránh cụm control wrap so le 3 hàng
+           bên phải trong khi logo trôi giữa. Xếp dọc: logo trên, control dưới, căn trái đều.
+        ══════════════════════════════════════════ */
+        @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+            /* container header: đổi từ row → cột, căn trái, khoảng cách đều */
+            .app-header > div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                justify-content: flex-start !important;
+                gap: 16px !important;
+            }
+            /* cụm control (child cuối): chiếm full bề ngang, các pill căn trái, xuống hàng đều */
+            .app-header > div > div:last-child {
+                width: 100% !important;
+                justify-content: flex-start !important;
+                align-items: center !important;
+                gap: 10px !important;
+            }
+            /* nhóm User + Dark + nút nhập liệu: giữ liền mạch, không bị tách lẻ */
+            .app-header .user-dm-group {
+                flex-wrap: wrap !important;
+                gap: 10px !important;
+            }
+        }
+
+        /* ══════════════════════════════════════════
            MỤC 4 · PAGINATION (Kế Hoạch Chi Tiết)
         ══════════════════════════════════════════ */
         #plan-pagination {
