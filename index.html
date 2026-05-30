@@ -1082,6 +1082,21 @@
                 transparent 100%);
             pointer-events: none;
         }
+        /* ════ AUTO-HIDE HEADER khi cuộn (CHỈ iPhone + iPad ≤1279px) ════
+           Cuộn xuống → header trượt lên + mờ dần biến mất.
+           Cuộn lên → hiện lại ngay. Web desktop KHÔNG bị ảnh hưởng. */
+        @media (max-width: 1279px) {
+            .app-header {
+                transition: transform 0.85s cubic-bezier(0.16,1,0.3,1),
+                            opacity 0.7s cubic-bezier(0.16,1,0.3,1);
+                will-change: transform, opacity;
+            }
+            .app-header.header-hidden {
+                transform: translateY(-100%);
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
         [data-theme="dark"] .app-header {
             background:
                 linear-gradient(115deg,
@@ -9171,6 +9186,52 @@ ${buildAIContext()}
             
             // API key hardcoded
         };
+
+        // ════ AUTO-HIDE HEADER khi cuộn — CHỈ iPhone + iPad (≤1279px) ════
+        (function initAutoHideHeader() {
+            const header = document.querySelector('.app-header');
+            if (!header) return;
+            const mq = window.matchMedia('(max-width: 1279px)');
+            let lastY = window.scrollY || 0;
+            let ticking = false;
+            let accum = 0;              // quãng cuộn tích lũy cùng hướng
+            let hidden = false;
+            const HIDE_TRIGGER  = 70;  // phải cuộn XUỐNG tổng ≥70px mới ẩn (mượt, không giật)
+            const SHOW_TRIGGER  = 36;  // cuộn LÊN tổng ≥36px thì hiện lại
+            const TOP_LOCK      = 64;  // gần đỉnh trang → luôn hiện
+
+            function setHidden(v) {
+                if (v === hidden) return;     // KHÔNG toggle lại nếu trạng thái không đổi → hết nhấp nháy
+                hidden = v;
+                header.classList.toggle('header-hidden', v);
+            }
+
+            function onScroll() {
+                const y = Math.max(0, window.scrollY || window.pageYOffset || 0);
+                if (!mq.matches) { setHidden(false); lastY = y; ticking = false; return; }
+
+                const diff = y - lastY;
+                // đổi hướng → reset bộ đếm tích lũy
+                if ((diff > 0 && accum < 0) || (diff < 0 && accum > 0)) accum = 0;
+                accum += diff;
+
+                if (y <= TOP_LOCK) {
+                    setHidden(false); accum = 0;
+                } else if (accum > HIDE_TRIGGER) {
+                    setHidden(true);  accum = 0;
+                } else if (accum < -SHOW_TRIGGER) {
+                    setHidden(false); accum = 0;
+                }
+                lastY = y;
+                ticking = false;
+            }
+            window.addEventListener('scroll', () => {
+                if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
+            }, { passive: true });
+            mq.addEventListener && mq.addEventListener('change', e => {
+                if (!e.matches) setHidden(false);
+            });
+        })();
     </script>
 
     <!-- Floating CONT/SEAL/VGM Tooltip -->
