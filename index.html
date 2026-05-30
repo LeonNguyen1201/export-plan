@@ -5987,10 +5987,14 @@
                 updatedRecord = applyBusinessRules(updatedRecord);
 
                 // (Mục 2) HỎI XÁC NHẬN trước khi lưu thay đổi
+                // Nâng z-index hộp xác nhận lên TRÊN pop-up form (mobile) để bấm Đồng ý được ngay
+                const _cm = document.getElementById('custom-modal');
+                if (_cm) _cm.style.zIndex = '80';
                 showConfirmModal(
                     'Lưu thay đổi lô hàng?',
                     `Xác nhận lưu các thay đổi cho lô "${poNo}"? Dữ liệu cũ sẽ bị ghi đè.`,
                     () => {
+                        if (_cm) _cm.style.zIndex = '';
                         // 1) Cập nhật local + render NGAY
                         const index = dbData.findIndex(item => item.id === editId);
                         if (index !== -1) dbData[index] = updatedRecord;
@@ -6003,7 +6007,7 @@
                         resetForm();
                         closeMobileFormIfOpen();
                     },
-                    null
+                    () => { if (_cm) _cm.style.zIndex = ''; }
                 );
                 return;
             } else {
