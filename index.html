@@ -1871,35 +1871,45 @@
             padding: 7px 6px;
             border-radius: 30px;
             /* (Liquid glass) nền RẤT trong suốt → thấy nội dung trang xuyên qua */
-            background: rgba(255,255,255,0.20);
-            backdrop-filter: blur(18px) saturate(180%);
-            -webkit-backdrop-filter: blur(18px) saturate(180%);
-            border: 1px solid rgba(255,255,255,0.45);
-            box-shadow: 0 12px 34px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.55);
+            background: rgba(255,255,255,0.10);
+            backdrop-filter: blur(13px) saturate(170%);
+            -webkit-backdrop-filter: blur(13px) saturate(170%);
+            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 12px 32px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.5);
             touch-action: pan-y;   /* vuốt ngang kéo tab, vẫn cuộn dọc được */
         }
-        /* VIÊN KÍNH TRƯỢT — trong suốt, chỉ làm SÁNG + nét hơn vùng được chọn (như thấu kính) */
+        /* VIÊN KÍNH TRƯỢT — gần như trong suốt; PHÓNG ĐẠI vùng dưới nó (nét + sáng hơn, không blur) */
         .bn-indicator {
             position: absolute;
             top: 5px; left: 0;
             height: calc(100% - 10px);
             width: 0;                /* JS đặt width + transform theo tab active */
             border-radius: 23px;
-            /* nền gần như trong suốt — KHÔNG dùng trắng đục */
-            background: linear-gradient(160deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0.16) 100%);
-            backdrop-filter: blur(0.5px) brightness(1.22) saturate(1.7) contrast(1.04);
-            -webkit-backdrop-filter: blur(0.5px) brightness(1.22) saturate(1.7) contrast(1.04);
+            /* nền cực mỏng — chủ yếu dựa vào viền + highlight + backdrop để tạo kính */
+            background: linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.12) 100%);
+            /* KHÔNG blur → nội dung dưới kính NÉT; brightness+contrast cao → như được phóng/soi rõ */
+            backdrop-filter: brightness(1.32) contrast(1.12) saturate(1.85);
+            -webkit-backdrop-filter: brightness(1.32) contrast(1.12) saturate(1.85);
             border: 1px solid rgba(255,255,255,0.9);
             box-shadow:
-                0 5px 16px rgba(15,23,42,0.16),          /* bóng nổi */
-                inset 0 1.5px 1px rgba(255,255,255,1),    /* mép trên sáng (specular) */
-                inset 0 -4px 10px rgba(255,255,255,0.45), /* đáy hắt sáng */
-                inset 2px 0 6px rgba(255,255,255,0.3),
-                inset -2px 0 6px rgba(255,255,255,0.3);
+                0 6px 18px rgba(15,23,42,0.16),           /* bóng nổi */
+                inset 0 1.5px 1px rgba(255,255,255,1),     /* mép trên sáng (specular) */
+                inset 0 -5px 12px rgba(255,255,255,0.5),   /* đáy hắt sáng (lồi như giọt nước) */
+                inset 3px 0 8px rgba(255,255,255,0.32),
+                inset -3px 0 8px rgba(255,255,255,0.32);
             z-index: 0;
             pointer-events: none;
-            transition: transform 0.46s cubic-bezier(0.22,1,0.36,1),
-                        width 0.46s cubic-bezier(0.22,1,0.36,1);
+            transform-origin: center;
+            transition: transform 0.5s cubic-bezier(0.34,1.4,0.5,1),
+                        width 0.5s cubic-bezier(0.34,1.4,0.5,1);
+        }
+        /* giãn ngang đàn hồi khi chuyển tab (squash & stretch — như khối kính lỏng) */
+        .bn-indicator.bn-morph { animation: bn-liquid-stretch 0.52s cubic-bezier(0.34,1.4,0.5,1); }
+        @keyframes bn-liquid-stretch {
+            0%   { scale: 1 1; }
+            38%  { scale: 1.18 0.9; }
+            70%  { scale: 0.97 1.03; }
+            100% { scale: 1 1; }
         }
         /* lóa sáng chéo trên mặt kính (specular sheen) */
         .bn-indicator::before {
@@ -1939,11 +1949,13 @@
             border-radius: 20px;
             z-index: 1;
         }
-        .bn-item i { font-size: 18px; transition: transform 0.25s ease; }
-        .bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+        .bn-item i { font-size: 18px; transition: transform 0.35s cubic-bezier(0.34,1.4,0.5,1); transform-origin: center; }
+        .bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; transition: transform 0.35s cubic-bezier(0.34,1.4,0.5,1); transform-origin: center; }
         .bn-item:active { transform: scale(0.9); }
         .bn-item.active { color: #2563eb; }
-        .bn-item.active i { transform: translateY(-1px); filter: drop-shadow(0 2px 5px rgba(37,99,235,0.4)); }
+        /* PHÓNG ĐẠI: chữ + icon tab đang chọn to lên như nhìn qua thấu kính */
+        .bn-item.active i { transform: translateY(-1px) scale(1.22); filter: drop-shadow(0 2px 6px rgba(37,99,235,0.45)); }
+        .bn-item.active span { transform: scale(1.12); font-weight: 800; }
 
         /* Nút tròn 2 đầu (AI trái · Nhập Liệu phải) — cùng chất kính trong suốt */
         .bn-circle {
@@ -9509,6 +9521,9 @@ ${buildAIContext()}
                 btn.classList.toggle('active', btn.getAttribute('data-tab-target') === tab);
             });
             positionTabIndicator(tab, true);
+            // hiệu ứng giãn đàn hồi (liquid) khi chuyển
+            const _ind = document.getElementById('bn-indicator');
+            if (_ind) { _ind.classList.remove('bn-morph'); void _ind.offsetWidth; _ind.classList.add('bn-morph'); }
             window.scrollTo({ top: 0, behavior: 'auto' });
             // vẽ lại biểu đồ khi mở tab Tiện Ích (chart cần hiển thị mới đo đúng kích thước)
             if (tab === 'tools') {
