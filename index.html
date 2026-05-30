@@ -1798,35 +1798,12 @@
             }
         }
 
-        /* ══════════════════════════════════════════
-           (Mục 2b) Header GỌN GÀNG trên iPad/iPhone (CẢ dọc & ngang ≤1279px) — tránh cụm control
-           wrap so le 3 hàng bên phải trong khi logo trôi giữa. Xếp dọc: logo trên, control dưới căn trái.
-        ══════════════════════════════════════════ */
-        @media (min-width: 641px) and (max-width: 1279px) {
-            /* container header: đổi từ row → cột, căn trái, khoảng cách đều */
-            .app-header > div {
-                flex-direction: column !important;
-                align-items: flex-start !important;
-                justify-content: flex-start !important;
-                gap: 16px !important;
-            }
-            /* cụm control (child cuối): chiếm full bề ngang, các pill căn trái, xuống hàng đều */
-            .app-header > div > div:last-child {
-                width: 100% !important;
-                justify-content: flex-start !important;
-                align-items: center !important;
-                gap: 10px !important;
-            }
-            /* nhóm User + Dark + nút nhập liệu: giữ liền mạch, không bị tách lẻ */
-            .app-header .user-dm-group {
-                flex-wrap: wrap !important;
-                gap: 10px !important;
-            }
-        }
+        /* (Mục 2b) Header trên iPad/iPhone landscape (≤1279px) dùng layout GRID bên dưới
+           (logo trái — cụm control phải 2 hàng). Xem block kế tiếp. */
 
-        /* iPad DỌC: KÉO cụm control LÊN ngang logo để giảm độ dày header.
-           Hàng trên: đồng hồ ngày tháng + Cloud + Hamburger · Hàng dưới: user-switch + Dark. Căn phải. */
-        @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+        /* iPad DỌC & NGANG: KÉO cụm control LÊN ngang logo để giảm độ dày header.
+           Hàng trên: đồng hồ ngày tháng + Cloud · Hàng dưới: user-switch + Dark + Hamburger. Căn phải. */
+        @media (min-width: 641px) and (max-width: 1279px) {
             /* hàng ngang: logo trái — cụm control phải, căn lên đỉnh ngang logo */
             .app-header > div {
                 flex-direction: row !important;
@@ -1837,23 +1814,23 @@
             /* cụm control = GRID 2 hàng, căn phải */
             .app-header > div > div:last-child {
                 display: grid !important;
-                grid-template-columns: repeat(3, auto) !important;
+                grid-template-columns: repeat(2, auto) !important;
                 justify-content: end !important;
                 align-items: center !important;
                 gap: 12px 10px !important;
                 width: auto !important;
             }
-            /* hàng trên: đồng hồ + Cloud + Hamburger (3 cột) */
+            /* hàng trên: đồng hồ + Cloud (2 cột) */
             .app-header .chip-clock          { order: 1 !important; }
             .app-header #cloud-status-badge  { order: 2 !important; }
-            .app-header .mobile-form-toggle  { order: 3 !important; justify-self: end !important; }
-            /* hàng dưới: user-switch + Dark — span trọn 3 cột, đẩy về phải */
+            /* hàng dưới: user-switch + Dark + Hamburger — span trọn 2 cột, đẩy về phải */
             .app-header .user-dm-group {
-                order: 4 !important;
+                order: 3 !important;
                 grid-column: 1 / -1 !important;
                 justify-self: end !important;
                 display: flex !important;
                 flex-wrap: nowrap !important;
+                align-items: center !important;
                 justify-content: flex-end !important;
                 gap: 10px !important;
             }
@@ -3832,13 +3809,13 @@
                         <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this.checked)">
                         <span class="dm-track"></span>
                     </label>
-                </div>
 
-                <!-- Nút mở form "Export Data Entry" (chỉ mobile) — tách riêng để iPad dọc xếp xuống hàng dưới -->
-                <button type="button" id="mobile-form-toggle" onclick="toggleMobileForm()" class="mobile-form-toggle xl:hidden" title="Mở bảng nhập liệu Export Data Entry" aria-label="Nhập liệu">
-                    <i class="fa-solid fa-bars" id="mobile-form-toggle-icon"></i>
-                    <span class="mft-label">Nhập liệu</span>
-                </button>
+                    <!-- Nút mở form "Export Data Entry" (chỉ mobile) — cạnh Dark mode -->
+                    <button type="button" id="mobile-form-toggle" onclick="toggleMobileForm()" class="mobile-form-toggle xl:hidden" title="Mở bảng nhập liệu Export Data Entry" aria-label="Nhập liệu">
+                        <i class="fa-solid fa-bars" id="mobile-form-toggle-icon"></i>
+                        <span class="mft-label">Nhập liệu</span>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
