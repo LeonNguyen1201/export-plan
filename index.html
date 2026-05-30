@@ -6598,10 +6598,19 @@
         // (đã gộp vào _onUiResize — đóng popover khi resize)
 
         function scrollToChart() {
-            const el = document.getElementById('chart-section');
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth' });
+            // Nếu đang ở chế độ tab (iPhone/iPad dọc) → chuyển sang tab Tiện Ích trước,
+            // vì biểu đồ thuộc tab này (đang bị ẩn ở các tab khác).
+            const inTabMode = typeof _tabMQ !== 'undefined' && _tabMQ.matches;
+            if (inTabMode && typeof bnGoTab === 'function') {
+                bnGoTab('tools');
+                setTimeout(() => {
+                    const el = document.getElementById('chart-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }, 120);
+                return;
             }
+            const el = document.getElementById('chart-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
         }
 
         // MỤC 6 · bấm ra ngoài → đóng popup CONT đã gim
