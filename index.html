@@ -173,14 +173,14 @@
         .dm-track {
             width: 64px; height: 32px;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, 0.42);
+            background: rgba(255, 255, 255, 0.20);
             backdrop-filter: blur(18px) saturate(180%);
             -webkit-backdrop-filter: blur(18px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.45);
             display: flex; align-items: center; padding: 3px;
             position: relative;
             box-shadow:
-                inset 0 1.5px 0 rgba(255, 255, 255, 0.85),
+                inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
                 inset 0 -3px 8px rgba(15, 23, 42, 0.10),
                 0 4px 14px -2px rgba(15, 23, 42, 0.14);
             transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
@@ -201,10 +201,10 @@
             z-index: 0;
         }
         [data-theme="dark"] .dm-track {
-            background: rgba(15, 23, 42, 0.55);
-            border-color: rgba(129, 140, 248, 0.36);
+            background: rgba(17, 24, 39, 0.34);
+            border-color: rgba(255, 255, 255, 0.16);
             box-shadow:
-                inset 0 1.5px 0 rgba(255, 255, 255, 0.12),
+                inset 0 1.5px 0 rgba(255, 255, 255, 0.1),
                 inset 0 -3px 8px rgba(0, 0, 0, 0.5),
                 0 4px 14px -2px rgba(0, 0, 0, 0.45);
         }
@@ -1171,24 +1171,24 @@
         .user-switch {
             position: relative;
             display: inline-flex; align-items: stretch;
-            background: rgba(255, 255, 255, 0.55);
-            backdrop-filter: blur(18px) saturate(160%);
-            -webkit-backdrop-filter: blur(18px) saturate(160%);
-            border: 1px solid rgba(255, 255, 255, 0.65);
+            background: rgba(255, 255, 255, 0.20);
+            backdrop-filter: blur(18px) saturate(180%);
+            -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
             border-radius: 9999px;
             overflow: hidden;
             padding: 4px;
             gap: 4px;
             min-height: 44px;
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.55),
                 0 6px 20px -8px rgba(15, 23, 42, 0.12);
         }
         [data-theme="dark"] .user-switch {
-            background: rgba(30, 41, 76, 0.42);
-            border-color: rgba(255, 255, 255, 0.08);
+            background: rgba(17, 24, 39, 0.34);
+            border-color: rgba(255, 255, 255, 0.16);
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
                 0 6px 20px -8px rgba(0, 0, 0, 0.45);
         }
         /* Morphing liquid indicator */
@@ -3785,6 +3785,10 @@
         -webkit-backdrop-filter: blur(22px) saturate(185%) !important;
         border: 1px solid var(--border) !important;
         box-shadow: var(--lg-glass-shadow) !important;
+        border-radius: 18px !important;     /* backdrop-filter tự cắt theo bo góc */
+        overflow: hidden !important;
+        -webkit-mask-image: -webkit-radial-gradient(white, black);  /* ép Safari cắt góc bo khi có backdrop-filter */
+        isolation: isolate;
     }
     /* các dải header/input của panel: cho trong suốt để lộ kính liền mạch */
     .ai-popup-inner > div[style*="background:var(--bg-card)"] { background: transparent !important; }
@@ -3976,9 +3980,9 @@
                             <span class="user-dot"></span>
                             <span>Thuan Loi Rubber</span>
                         </button>
-                        <button type="button" data-user="icsg" onclick="switchUser('icsg')" title="Indochina Sai Gon">
+                        <button type="button" data-user="icsg" onclick="switchUser('icsg')" title="Indochina Saigon">
                             <span class="user-dot"></span>
-                            <span>Indochina Sai Gon</span>
+                            <span>Indochina Saigon</span>
                         </button>
                     </div>
 
@@ -5189,12 +5193,12 @@
             systemCurrentTime = shiftedDate;
         }
 
-        // ===== USER SWITCHER (Thuan Loi Rubber / Indochina Sai Gon) =====
+        // ===== USER SWITCHER (Thuan Loi Rubber / Indochina Saigon) =====
         // Cloud Realtime hoàn toàn độc lập — user-switch chỉ chuyển không gian làm việc/profile,
         // KHÔNG can thiệp vào mã Cloud của anh.
         const USER_PROFILES = {
             tlr:  { label: 'Thuan Loi Rubber'  },
-            icsg: { label: 'Indochina Sai Gon' }
+            icsg: { label: 'Indochina Saigon' }
         };
         function switchUser(userKey) {
             if (!USER_PROFILES[userKey]) return;
@@ -9429,7 +9433,7 @@ ${buildAIContext()}
                 document.getElementById('dark-mode-toggle').checked = true;
             }
 
-            // Restore active user (Thuan Loi Rubber / Indochina Sai Gon)
+            // Restore active user (Thuan Loi Rubber / Indochina Saigon)
             const savedUser = localStorage.getItem('ep_active_user') || 'tlr';
             document.querySelectorAll('.user-switch button').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.user === savedUser);
