@@ -1799,10 +1799,10 @@
         }
 
         /* ══════════════════════════════════════════
-           (Mục 2b) Header GỌN GÀNG trên iPad DỌC — tránh cụm control wrap so le 3 hàng
-           bên phải trong khi logo trôi giữa. Xếp dọc: logo trên, control dưới, căn trái đều.
+           (Mục 2b) Header GỌN GÀNG trên iPad/iPhone (CẢ dọc & ngang ≤1279px) — tránh cụm control
+           wrap so le 3 hàng bên phải trong khi logo trôi giữa. Xếp dọc: logo trên, control dưới căn trái.
         ══════════════════════════════════════════ */
-        @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+        @media (min-width: 641px) and (max-width: 1279px) {
             /* container header: đổi từ row → cột, căn trái, khoảng cách đều */
             .app-header > div {
                 flex-direction: column !important;
@@ -2191,13 +2191,14 @@
             }
             /* nội dung text được phép co và không tràn */
             .kpi-flip-wrap, .kpi-cost .flex-1 { min-width: 0; }
-            .kpi-cost-value { white-space: normal !important; word-break: break-word; }
+            /* SỐ TIỀN: KHÔNG ngắt giữa chừng — luôn 1 dòng, thu nhỏ vừa đủ để nằm trọn */
+            .kpi-cost-value { white-space: nowrap !important; word-break: normal !important; font-size: 16px !important; }
         }
         /* iPad DỌC (≤834px) hẹp hơn nữa → số liệu 18px, cho phép KPI xuống 2 hàng (2x2) cho thoáng */
         @media (min-width: 641px) and (max-width: 834px) and (orientation: portrait) {
             .grid.md\:grid-cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
             .kpi-value, #kpi-total-po, #kpi-total-cont, #kpi-cleared { font-size: 22px !important; }
-            .kpi-cost-value { font-size: 20px !important; }
+            .kpi-cost-value { font-size: 20px !important; white-space: nowrap !important; word-break: normal !important; }
             .card.kpi-flip, .kpi-cost { height: 96px !important; }
         }
 
