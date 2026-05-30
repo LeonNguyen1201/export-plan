@@ -1837,9 +1837,9 @@
         }
 
         /* ══════════════════════════════════════════
-           BOTTOM NAV (floating pill) — CHỈ iPhone + iPad DỌC
-           Thanh nổi đáy: pill kính mờ 3 mục + nút tròn FAB (Nhập liệu) tách phải.
-           Auto-hide: cuộn xuống → trượt xuống biến mất; cuộn lên → hiện lại.
+           BOTTOM NAV (floating, LIQUID GLASS trong suốt) — CHỈ iPhone + iPad DỌC
+           Bố cục: nút tròn AI (trái) · pill 3 mục (giữa) · nút tròn Nhập Liệu (phải).
+           Auto-hide: cuộn xuống → trượt xuống; cuộn lên → hiện lại.
         ══════════════════════════════════════════ */
         #bottom-nav {
             display: none;   /* mặc định ẩn; chỉ bật ở iPhone + iPad dọc bên dưới */
@@ -1847,10 +1847,10 @@
             left: 0; right: 0;
             bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
             z-index: 45;
-            /* chừa lề phải để KHÔNG đè nút AI nổi (nút AI ~58px ở góc phải) */
-            padding: 0 80px 0 16px;
+            padding: 0 14px;
             align-items: center;
-            pointer-events: none;
+            gap: 10px;
+            pointer-events: none;   /* vùng trống không chặn chạm; con bên trong bật lại */
             transition: transform 0.85s cubic-bezier(0.16,1,0.3,1),
                         opacity 0.7s cubic-bezier(0.16,1,0.3,1);
         }
@@ -1858,56 +1858,158 @@
             transform: translateY(180%);
             opacity: 0;
         }
-        #bottom-nav .bn-pill { pointer-events: auto; }
+        #bottom-nav .bn-pill, #bottom-nav .bn-circle { pointer-events: auto; }
+
+        /* Pill kính trong suốt (giống thanh nổi app gọi xe) */
         .bn-pill {
+            position: relative;
             flex: 1 1 auto;
             display: flex;
             align-items: center;
             justify-content: space-around;
             gap: 2px;
-            padding: 8px 6px;
-            border-radius: 26px;
-            background: rgba(255,255,255,0.72);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255,255,255,0.55);
-            box-shadow: 0 10px 30px rgba(15,23,42,0.18), inset 0 1px 0 rgba(255,255,255,0.6);
+            padding: 7px 6px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.45);
+            backdrop-filter: blur(26px) saturate(200%);
+            -webkit-backdrop-filter: blur(26px) saturate(200%);
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 12px 34px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+            touch-action: pan-y;   /* cho phép vuốt ngang để kéo tab, vẫn cuộn dọc được */
         }
+        /* VIÊN KÍNH TRƯỢT — chạy mượt từ tab này sang tab kia (liquid glass) */
+        .bn-indicator {
+            position: absolute;
+            top: 6px; left: 0;
+            height: calc(100% - 12px);
+            width: 0;                /* JS đặt width + transform theo tab active */
+            border-radius: 22px;
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(6px) brightness(1.18) saturate(1.6);
+            -webkit-backdrop-filter: blur(6px) brightness(1.18) saturate(1.6);
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow:
+                0 4px 14px rgba(15,23,42,0.18),
+                inset 0 1px 1px rgba(255,255,255,0.95),
+                inset 0 -2px 6px rgba(255,255,255,0.35);
+            z-index: 0;
+            pointer-events: none;
+            transition: transform 0.46s cubic-bezier(0.22,1,0.36,1),
+                        width 0.46s cubic-bezier(0.22,1,0.36,1);
+        }
+        /* ánh khúc xạ cầu vồng mảnh ở viền (gợi chất liquid glass) */
+        .bn-indicator::after {
+            content: "";
+            position: absolute; inset: -1px;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(115deg,
+                rgba(56,189,248,0.55), rgba(255,255,255,0) 35%,
+                rgba(255,255,255,0) 65%, rgba(168,85,247,0.5));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            opacity: 0.8;
+        }
+        .bn-pill.bn-dragging .bn-indicator { transition: none; }   /* kéo thì bám ngón tay tức thì */
         .bn-item {
+            position: relative;
             flex: 1 1 0;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             gap: 3px;
-            padding: 4px 1px;
+            padding: 6px 2px;
             border: none; background: transparent; cursor: pointer;
             color: #64748b;
-            transition: color 0.2s, transform 0.15s;
-            border-radius: 16px;
+            transition: color 0.3s ease, transform 0.15s ease;
+            border-radius: 20px;
+            z-index: 1;
         }
-        .bn-item i { font-size: 18px; }
+        .bn-item i { font-size: 18px; transition: transform 0.25s ease; }
         .bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
-        .bn-item:active { transform: scale(0.92); }
+        .bn-item:active { transform: scale(0.9); }
         .bn-item.active { color: #2563eb; }
-        .bn-item.active i { filter: drop-shadow(0 2px 4px rgba(37,99,235,0.35)); }
-        /* mục Nhập Liệu — nhấn nhá xanh để nổi như nút hành động */
-        .bn-item-entry { color: #2563eb; }
-        .bn-item-entry i { font-size: 19px; }
-        /* Dark mode */
-        [data-theme="dark"] .bn-pill {
-            background: rgba(17,24,39,0.78);
-            border-color: rgba(148,163,184,0.18);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+        .bn-item.active i { transform: translateY(-1px); filter: drop-shadow(0 2px 5px rgba(37,99,235,0.4)); }
+
+        /* Nút tròn 2 đầu (AI trái · Nhập Liệu phải) — cùng chất kính trong suốt */
+        .bn-circle {
+            flex: 0 0 auto;
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 21px; cursor: pointer;
+            background: rgba(255,255,255,0.45);
+            backdrop-filter: blur(26px) saturate(200%);
+            -webkit-backdrop-filter: blur(26px) saturate(200%);
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 12px 34px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+            transition: transform 0.15s ease, color 0.3s ease, background 0.3s ease;
+        }
+        .bn-circle:active { transform: scale(0.9); }
+        .bn-ai    { color: #2563eb; }     /* AI — xanh dương */
+        .bn-entry { color: #0ea5e9; }     /* Nhập Liệu — xanh ngọc */
+        .bn-circle.active {
+            background: rgba(37,99,235,0.16);
+            color: #1d4ed8;
+        }
+
+        /* Dark mode — kính tối trong suốt */
+        [data-theme="dark"] .bn-pill,
+        [data-theme="dark"] .bn-circle {
+            background: rgba(17,24,39,0.55);
+            border-color: rgba(148,163,184,0.22);
+            box-shadow: 0 12px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
         }
         [data-theme="dark"] .bn-item { color: #94a3b8; }
-        [data-theme="dark"] .bn-item.active { color: #93c5fd; }
-        [data-theme="dark"] .bn-item-entry { color: #93c5fd; }
+        [data-theme="dark"] .bn-item.active { color: #e0f2fe; }
+        [data-theme="dark"] .bn-indicator {
+            background: rgba(148,163,184,0.22);
+            border-color: rgba(255,255,255,0.35);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.25);
+        }
+        [data-theme="dark"] .bn-ai { color: #93c5fd; }
+        [data-theme="dark"] .bn-entry { color: #67e8f9; }
+        [data-theme="dark"] .bn-circle.active { background: rgba(147,197,253,0.18); color: #bfdbfe; }
+
         /* HIỆN bottom-nav: iPhone (≤640) + iPad DỌC (641–1279 portrait) */
         @media (max-width: 640px) {
             #bottom-nav { display: flex; }
-            body { padding-bottom: 88px; }   /* chừa chỗ để nội dung cuối không bị nav che */
+            body { padding-bottom: 92px; }
         }
         @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
             #bottom-nav { display: flex; }
-            body { padding-bottom: 92px; }
+            body { padding-bottom: 96px; }
+            .bn-circle { width: 60px; height: 60px; font-size: 23px; }
+            .bn-item span { font-size: 11px; }
+            .bn-item i { font-size: 19px; }
+        }
+
+        /* ══════════════════════════════════════════
+           TAB MODE — mỗi mục bottom-nav = MỘT TRANG riêng (chỉ iPhone + iPad DỌC)
+           Web/iPad ngang giữ nguyên 1 trang cuộn dài (KHÔNG áp dụng tab).
+           Ẩn pane không thuộc tab đang chọn; chuyển tab có hiệu ứng mờ mượt.
+        ══════════════════════════════════════════ */
+        @media (max-width: 640px),
+               (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+            /* mặc định mọi pane ẩn; chỉ pane khớp tab hiện tại mới hiện */
+            body.tabmode .tab-pane { display: none !important; }
+            body.tabmode-overview .tab-pane[data-tab="overview"],
+            body.tabmode-plan     .tab-pane[data-tab="plan"],
+            body.tabmode-tools    .tab-pane[data-tab="tools"] {
+                display: block !important;
+                animation: tab-fade-in 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            /* KPI là grid → giữ grid khi hiện */
+            body.tabmode-overview #sec-overview.tab-pane[data-tab="overview"] { display: grid !important; }
+            /* bỏ khoảng cách thừa của section chart khi đứng một mình */
+            body.tabmode #chart-section { margin-top: 0 !important; }
+        }
+        @keyframes tab-fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        /* Trên mobile/iPad dọc: AI đã nằm trong bottom-nav → ẩn nút AI nổi để khỏi trùng */
+        @media (max-width: 640px),
+               (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+            #ai-float-btn { display: none !important; }
         }
 
         /* ══════════════════════════════════════════
@@ -4134,7 +4236,7 @@
         </div>
 
         <!-- KPI Dashboard -->
-        <div id="sec-overview" class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+        <div id="sec-overview" data-tab="overview" class="tab-pane grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
             <!-- PO · hover → trung bình đơn hàng/ngày, /tháng -->
             <div class="card theme-transition p-5 flex items-center gap-4 h-28 kpi-flip">
                 <div class="kpi-icon kpi-icon-indigo no-transition">
@@ -4204,7 +4306,7 @@
             <div id="left-column" class="xl:col-span-3 space-y-3">
 
                 <!-- TOP: Ô Công Cụ Excel & Báo Cáo (đã chuyển từ "Tra Cứu Nhanh & Tiện Ích" lên đây — ngang hàng với khu vực Tìm Kiếm bên phải) -->
-                <div id="tools-card" class="card lift-card-soft theme-transition overflow-hidden">
+                <div id="tools-card" data-tab="overview" class="tab-pane card lift-card-soft theme-transition overflow-hidden">
                     <div class="tools-card-head px-4 py-2.5 flex items-center gap-2">
                         <i class="fa-solid fa-toolbox text-[13px] no-transition" style="color:#6366f1"></i>
                         <span class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--text-primary)">Công Cụ Excel &amp; Báo Cáo</span>
@@ -4421,7 +4523,7 @@
             </div><!-- /#left-column -->
 
             <!-- CỘT 2: BẢNG KẾ HOẠCH CHI TIẾT -->
-            <div id="main-content-column" class="xl:col-span-9 space-y-2">
+            <div id="main-content-column" data-tab="plan" class="tab-pane xl:col-span-9 space-y-2">
                 
                 <!-- Thanh công cụ lọc và tìm kiếm nhanh -->
                 <div id="sec-plan" class="filter-bar px-4 py-3 rounded-xl card flex flex-col gap-2.5">
@@ -4542,7 +4644,7 @@
                 </div>
 
                 <!-- TIỆN ÍCH: 4 ô tra cứu — đã chuyển ô "Excel & Báo Cáo" lên cột trái (phía trên Export Data Entry) -->
-                <div id="sec-tools" class="card quick-link-section theme-transition overflow-hidden">
+                <div id="sec-tools" data-tab="tools" class="tab-pane card quick-link-section theme-transition overflow-hidden">
                     <div class="px-4 py-2.5 flex items-center gap-2" style="background:var(--bg-card-alt);border-bottom:1px solid var(--border)">
                         <i class="fa-solid fa-satellite-dish text-blue-600 text-xs no-transition"></i>
                         <span class="text-xs font-bold uppercase tracking-wider" style="color:var(--text-primary)">Tra Cứu Nhanh &amp; Tiện Ích</span>
@@ -4780,7 +4882,7 @@
         </div>
 
         <!-- PHẦN THỐNG KÊ BIỂU ĐỒ & SƠ ĐỒ GANTT -->
-        <section id="chart-section" class="mt-8 rounded-2xl card">
+        <section id="chart-section" data-tab="tools" class="tab-pane mt-8 rounded-2xl card">
             <div class="section-head-light px-5 py-5 flex justify-between items-center flex-wrap gap-3">
                 <h3 class="section-title-gradient flex items-center gap-3">
                     <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl" style="background:rgba(37,99,235,0.10);color:#2563eb">
@@ -4859,22 +4961,27 @@
         </div>
     </footer>
 
-    <!-- ════════ BOTTOM NAV (floating pill) — CHỈ iPhone + iPad DỌC ════════ -->
+    <!-- ════════ BOTTOM NAV (floating, liquid glass) — CHỈ iPhone + iPad DỌC ════════
+         Bố cục giống app gọi xe: nút tròn AI tách TRÁI · pill 3 mục giữa · nút tròn Nhập Liệu tách PHẢI -->
     <nav id="bottom-nav" aria-label="Điều hướng nhanh">
-        <div class="bn-pill">
-            <button type="button" class="bn-item" data-target="sec-overview" onclick="bnGo('sec-overview')">
+        <button type="button" class="bn-circle bn-ai" onclick="toggleAIPanel()" title="Trợ lý AI Logistics" aria-label="Trợ lý AI">
+            <i class="fa-solid fa-robot"></i>
+        </button>
+        <div class="bn-pill" id="bn-pill">
+            <span class="bn-indicator" id="bn-indicator" aria-hidden="true"></span>
+            <button type="button" class="bn-item" data-tab-target="overview" onclick="bnGoTab('overview')">
                 <i class="fa-solid fa-gauge-high"></i><span>Tổng Quan</span>
             </button>
-            <button type="button" class="bn-item" data-target="sec-plan" onclick="bnGo('sec-plan')">
+            <button type="button" class="bn-item" data-tab-target="plan" onclick="bnGoTab('plan')">
                 <i class="fa-solid fa-clipboard-list"></i><span>Kế Hoạch</span>
             </button>
-            <button type="button" class="bn-item" data-target="sec-tools" onclick="bnGo('sec-tools')">
+            <button type="button" class="bn-item" data-tab-target="tools" onclick="bnGoTab('tools')">
                 <i class="fa-solid fa-toolbox"></i><span>Tiện Ích</span>
             </button>
-            <button type="button" class="bn-item bn-item-entry" onclick="toggleMobileForm()" title="Mở bảng nhập liệu">
-                <i class="fa-solid fa-pen-to-square"></i><span>Nhập Liệu</span>
-            </button>
         </div>
+        <button type="button" class="bn-circle bn-entry" onclick="toggleMobileForm()" title="Mở bảng nhập liệu" aria-label="Nhập liệu">
+            <i class="fa-solid fa-pen-to-square"></i>
+        </button>
     </nav>
 
     <script>
@@ -5355,7 +5462,7 @@
         function toggleMobileForm() {
             const open = document.body.classList.toggle('mobile-form-active');
             // Tô sáng mục "Nhập Liệu" ở bottom-nav khi form đang mở
-            const entry = document.querySelector('#bottom-nav .bn-item-entry');
+            const entry = document.querySelector('#bottom-nav .bn-entry');
             if (entry) entry.classList.toggle('active', open);
             if (open) { try { document.getElementById('form-column').scrollTop = 0; } catch(e){} }
         }
@@ -8882,13 +8989,17 @@ ${buildAIContext()}
         function toggleAIPanel() {
             const aiChat = document.getElementById('ai-chat-column');
             const icon = document.getElementById('ai-float-icon');
-            if (aiChat.classList.contains('hidden')) {
+            const open = aiChat.classList.contains('hidden');
+            if (open) {
                 aiChat.classList.remove('hidden');
                 if (icon) { icon.classList.remove('fa-robot'); icon.classList.add('fa-xmark'); }
             } else {
                 aiChat.classList.add('hidden');
                 if (icon) { icon.classList.remove('fa-xmark'); icon.classList.add('fa-robot'); }
             }
+            // tô sáng nút AI trên bottom-nav khi panel mở
+            const aiCircle = document.querySelector('#bottom-nav .bn-ai');
+            if (aiCircle) aiCircle.classList.toggle('active', open);
         }
 
         // ===== XUẤT TỜ KHAI EPORT (Change 6) =====
@@ -9332,7 +9443,7 @@ ${buildAIContext()}
 
             function onScroll() {
                 const y = Math.max(0, window.scrollY || window.pageYOffset || 0);
-                if (!mq.matches) { setHidden(false); lastY = y; ticking = false; bnUpdateActive(); return; }
+                if (!mq.matches) { setHidden(false); lastY = y; ticking = false; return; }
                 const diff = y - lastY;
                 if ((diff > 0 && accum < 0) || (diff < 0 && accum > 0)) accum = 0;
                 accum += diff;
@@ -9341,7 +9452,6 @@ ${buildAIContext()}
                 else if (accum < -SHOW_TRIGGER) { setHidden(false); accum = 0; }
                 lastY = y;
                 ticking = false;
-                bnUpdateActive();
             }
             window.addEventListener('scroll', () => {
                 if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
@@ -9351,34 +9461,121 @@ ${buildAIContext()}
             });
         })();
 
-        // Cuộn mượt tới khu vực (trừ chiều cao header dính + chừa khoảng đệm)
-        function bnGo(targetId) {
-            const el = document.getElementById(targetId);
-            if (!el) return;
-            try { if (window.HAPTIC) HAPTIC.light && HAPTIC.light(); } catch(e){}
-            const header = document.querySelector('.app-header');
-            const offset = (header && !header.classList.contains('header-hidden') ? header.offsetHeight : 0) + 14;
-            const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
-            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        // ════ TAB MODE — mỗi mục = một "trang" (chỉ iPhone + iPad dọc) ════
+        const _tabMQ = window.matchMedia('(max-width: 640px), (min-width: 641px) and (max-width: 1279px) and (orientation: portrait)');
+        let _activeTab = 'overview';
+        const _TAB_ORDER = ['overview','plan','tools'];
+
+        // Đặt viên kính trượt vào đúng vị trí mục đang chọn
+        function positionTabIndicator(tab, animate = true) {
+            const pill = document.getElementById('bn-pill');
+            const ind = document.getElementById('bn-indicator');
+            if (!pill || !ind) return;
+            const btn = pill.querySelector(`.bn-item[data-tab-target="${tab}"]`);
+            if (!btn) return;
+            if (!animate) ind.style.transition = 'none';
+            ind.style.width = btn.offsetWidth + 'px';
+            ind.style.transform = `translateX(${btn.offsetLeft}px)`;
+            if (!animate) { void ind.offsetWidth; ind.style.transition = ''; }
         }
 
-        // Tô sáng mục đang xem theo vị trí cuộn
-        function bnUpdateActive() {
-            const ids = ['sec-overview','sec-plan','sec-tools'];
-            const mid = window.innerHeight * 0.35;
-            let current = ids[0];
-            for (const id of ids) {
-                const el = document.getElementById(id);
-                if (!el) continue;
-                const t = el.getBoundingClientRect().top;
-                if (t - mid <= 0) current = id;
-            }
+        function bnGoTab(tab) {
+            _activeTab = tab;
+            try { if (window.HAPTIC) HAPTIC.light && HAPTIC.light(); } catch(e){}
+            document.body.classList.add('tabmode');
+            document.body.classList.remove('tabmode-overview','tabmode-plan','tabmode-tools');
+            document.body.classList.add('tabmode-' + tab);
             document.querySelectorAll('#bottom-nav .bn-item').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-target') === current);
+                btn.classList.toggle('active', btn.getAttribute('data-tab-target') === tab);
             });
+            positionTabIndicator(tab, true);
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            // vẽ lại biểu đồ khi mở tab Tiện Ích (chart cần hiển thị mới đo đúng kích thước)
+            if (tab === 'tools') {
+                setTimeout(() => { try { renderData(); } catch(e){} }, 60);
+            }
         }
-        // chạy 1 lần khi tải xong để set active ban đầu
-        window.addEventListener('load', () => { try { bnUpdateActive(); } catch(e){} });
+
+        function _applyTabMode(on) {
+            if (on) {
+                document.body.classList.add('tabmode');
+                if (!document.body.classList.contains('tabmode-overview') &&
+                    !document.body.classList.contains('tabmode-plan') &&
+                    !document.body.classList.contains('tabmode-tools')) {
+                    bnGoTab(_activeTab || 'overview');
+                } else {
+                    document.querySelectorAll('#bottom-nav .bn-item').forEach(btn => {
+                        btn.classList.toggle('active', btn.getAttribute('data-tab-target') === _activeTab);
+                    });
+                }
+                // đặt lại vị trí viên kính (sau khi layout ổn định)
+                requestAnimationFrame(() => positionTabIndicator(_activeTab, false));
+            } else {
+                document.body.classList.remove('tabmode','tabmode-overview','tabmode-plan','tabmode-tools');
+            }
+        }
+        _tabMQ.addEventListener && _tabMQ.addEventListener('change', e => _applyTabMode(e.matches));
+        window.addEventListener('load', () => { try { _applyTabMode(_tabMQ.matches); } catch(e){} });
+        try { _applyTabMode(_tabMQ.matches); } catch(e){}
+        // căn lại viên kính khi xoay/đổi cỡ
+        window.addEventListener('resize', () => { if (_tabMQ.matches) positionTabIndicator(_activeTab, false); }, { passive: true });
+
+        // ════ VUỐT KÉO viên kính giữa các tab (touch) ════
+        (function initTabDrag(){
+            const pill = document.getElementById('bn-pill');
+            const ind = document.getElementById('bn-indicator');
+            if (!pill || !ind) return;
+            let dragging = false, startX = 0, startLeft = 0, w = 0, maxLeft = 0, moved = false;
+
+            function itemLeft(tab){ const b = pill.querySelector(`.bn-item[data-tab-target="${tab}"]`); return b ? b.offsetLeft : 0; }
+            function nearestTab(left){
+                // tìm tab có offsetLeft gần 'left' nhất
+                let best = _activeTab, bestD = Infinity;
+                _TAB_ORDER.forEach(t => {
+                    const d = Math.abs(itemLeft(t) - left);
+                    if (d < bestD) { bestD = d; best = t; }
+                });
+                return best;
+            }
+            function onStart(e){
+                if (!_tabMQ.matches) return;
+                const t = e.touches ? e.touches[0] : e;
+                dragging = true; moved = false;
+                startX = t.clientX;
+                startLeft = (pill.querySelector(`.bn-item[data-tab-target="${_activeTab}"]`) || {}).offsetLeft || 0;
+                w = ind.offsetWidth;
+                maxLeft = pill.clientWidth - w - 6;
+                pill.classList.add('bn-dragging');
+            }
+            function onMove(e){
+                if (!dragging) return;
+                const t = e.touches ? e.touches[0] : e;
+                const dx = t.clientX - startX;
+                if (Math.abs(dx) > 4) moved = true;
+                let nl = Math.max(6, Math.min(maxLeft, startLeft + dx));
+                ind.style.transform = `translateX(${nl}px)`;
+                // tô sáng mục mà viên kính đang phủ
+                const cur = nearestTab(nl);
+                document.querySelectorAll('#bottom-nav .bn-item').forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-tab-target') === cur);
+                });
+            }
+            function onEnd(){
+                if (!dragging) return;
+                dragging = false;
+                pill.classList.remove('bn-dragging');
+                // đọc vị trí hiện tại của viên kính
+                const m = /translateX\(([-\d.]+)px\)/.exec(ind.style.transform || '');
+                const left = m ? parseFloat(m[1]) : startLeft;
+                const target = nearestTab(left);
+                if (moved && target !== _activeTab) bnGoTab(target);
+                else positionTabIndicator(_activeTab, true);  // snap về chỗ cũ
+            }
+            pill.addEventListener('touchstart', onStart, { passive: true });
+            pill.addEventListener('touchmove', onMove, { passive: true });
+            pill.addEventListener('touchend', onEnd);
+            pill.addEventListener('touchcancel', onEnd);
+        })();
     </script>
 
     <!-- Floating CONT/SEAL/VGM Tooltip -->
