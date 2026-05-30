@@ -1837,6 +1837,80 @@
         }
 
         /* ══════════════════════════════════════════
+           BOTTOM NAV (floating pill) — CHỈ iPhone + iPad DỌC
+           Thanh nổi đáy: pill kính mờ 3 mục + nút tròn FAB (Nhập liệu) tách phải.
+           Auto-hide: cuộn xuống → trượt xuống biến mất; cuộn lên → hiện lại.
+        ══════════════════════════════════════════ */
+        #bottom-nav {
+            display: none;   /* mặc định ẩn; chỉ bật ở iPhone + iPad dọc bên dưới */
+            position: fixed;
+            left: 0; right: 0;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+            z-index: 45;
+            /* chừa lề phải để KHÔNG đè nút AI nổi (nút AI ~58px ở góc phải) */
+            padding: 0 80px 0 16px;
+            align-items: center;
+            pointer-events: none;
+            transition: transform 0.85s cubic-bezier(0.16,1,0.3,1),
+                        opacity 0.7s cubic-bezier(0.16,1,0.3,1);
+        }
+        #bottom-nav.nav-hidden {
+            transform: translateY(180%);
+            opacity: 0;
+        }
+        #bottom-nav .bn-pill { pointer-events: auto; }
+        .bn-pill {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            gap: 2px;
+            padding: 8px 6px;
+            border-radius: 26px;
+            background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.55);
+            box-shadow: 0 10px 30px rgba(15,23,42,0.18), inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+        .bn-item {
+            flex: 1 1 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px;
+            padding: 4px 1px;
+            border: none; background: transparent; cursor: pointer;
+            color: #64748b;
+            transition: color 0.2s, transform 0.15s;
+            border-radius: 16px;
+        }
+        .bn-item i { font-size: 18px; }
+        .bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+        .bn-item:active { transform: scale(0.92); }
+        .bn-item.active { color: #2563eb; }
+        .bn-item.active i { filter: drop-shadow(0 2px 4px rgba(37,99,235,0.35)); }
+        /* mục Nhập Liệu — nhấn nhá xanh để nổi như nút hành động */
+        .bn-item-entry { color: #2563eb; }
+        .bn-item-entry i { font-size: 19px; }
+        /* Dark mode */
+        [data-theme="dark"] .bn-pill {
+            background: rgba(17,24,39,0.78);
+            border-color: rgba(148,163,184,0.18);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        [data-theme="dark"] .bn-item { color: #94a3b8; }
+        [data-theme="dark"] .bn-item.active { color: #93c5fd; }
+        [data-theme="dark"] .bn-item-entry { color: #93c5fd; }
+        /* HIỆN bottom-nav: iPhone (≤640) + iPad DỌC (641–1279 portrait) */
+        @media (max-width: 640px) {
+            #bottom-nav { display: flex; }
+            body { padding-bottom: 88px; }   /* chừa chỗ để nội dung cuối không bị nav che */
+        }
+        @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+            #bottom-nav { display: flex; }
+            body { padding-bottom: 92px; }
+        }
+
+        /* ══════════════════════════════════════════
            MỤC 4 · PAGINATION (Kế Hoạch Chi Tiết)
         ══════════════════════════════════════════ */
         #plan-pagination {
@@ -3810,11 +3884,6 @@
                         <span class="dm-track"></span>
                     </label>
 
-                    <!-- Nút mở form "Export Data Entry" (chỉ mobile) — cạnh Dark mode -->
-                    <button type="button" id="mobile-form-toggle" onclick="toggleMobileForm()" class="mobile-form-toggle xl:hidden" title="Mở bảng nhập liệu Export Data Entry" aria-label="Nhập liệu">
-                        <i class="fa-solid fa-bars" id="mobile-form-toggle-icon"></i>
-                        <span class="mft-label">Nhập liệu</span>
-                    </button>
                 </div>
             </div>
         </div>
@@ -4109,7 +4178,7 @@
         </div>
 
         <!-- KPI Dashboard -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+        <div id="sec-overview" class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
             <!-- PO · hover → trung bình đơn hàng/ngày, /tháng -->
             <div class="card theme-transition p-5 flex items-center gap-4 h-28 kpi-flip">
                 <div class="kpi-icon kpi-icon-indigo no-transition">
@@ -4399,7 +4468,7 @@
             <div id="main-content-column" class="xl:col-span-9 space-y-2">
                 
                 <!-- Thanh công cụ lọc và tìm kiếm nhanh -->
-                <div class="filter-bar px-4 py-3 rounded-xl card flex flex-col gap-2.5">
+                <div id="sec-plan" class="filter-bar px-4 py-3 rounded-xl card flex flex-col gap-2.5">
                     <!-- Hàng 1: Ô tìm kiếm + Dropdowns lọc -->
                     <div class="flex items-center gap-2.5 flex-wrap">
                         <div class="relative flex-1 min-w-[220px]">
@@ -4517,7 +4586,7 @@
                 </div>
 
                 <!-- TIỆN ÍCH: 4 ô tra cứu — đã chuyển ô "Excel & Báo Cáo" lên cột trái (phía trên Export Data Entry) -->
-                <div class="card quick-link-section theme-transition overflow-hidden">
+                <div id="sec-tools" class="card quick-link-section theme-transition overflow-hidden">
                     <div class="px-4 py-2.5 flex items-center gap-2" style="background:var(--bg-card-alt);border-bottom:1px solid var(--border)">
                         <i class="fa-solid fa-satellite-dish text-blue-600 text-xs no-transition"></i>
                         <span class="text-xs font-bold uppercase tracking-wider" style="color:var(--text-primary)">Tra Cứu Nhanh &amp; Tiện Ích</span>
@@ -4833,6 +4902,24 @@
             <p class="mt-1 text-slate-500 text-[11px]" style="color:var(--text-muted)">Hệ thống thông tin quản lý nội bộ phục vụ kiểm soát & tối ưu hóa quy trình hàng xuất khẩu.</p>
         </div>
     </footer>
+
+    <!-- ════════ BOTTOM NAV (floating pill) — CHỈ iPhone + iPad DỌC ════════ -->
+    <nav id="bottom-nav" aria-label="Điều hướng nhanh">
+        <div class="bn-pill">
+            <button type="button" class="bn-item" data-target="sec-overview" onclick="bnGo('sec-overview')">
+                <i class="fa-solid fa-gauge-high"></i><span>Tổng Quan</span>
+            </button>
+            <button type="button" class="bn-item" data-target="sec-plan" onclick="bnGo('sec-plan')">
+                <i class="fa-solid fa-clipboard-list"></i><span>Kế Hoạch</span>
+            </button>
+            <button type="button" class="bn-item" data-target="sec-tools" onclick="bnGo('sec-tools')">
+                <i class="fa-solid fa-toolbox"></i><span>Tiện Ích</span>
+            </button>
+            <button type="button" class="bn-item bn-item-entry" onclick="toggleMobileForm()" title="Mở bảng nhập liệu">
+                <i class="fa-solid fa-pen-to-square"></i><span>Nhập Liệu</span>
+            </button>
+        </div>
+    </nav>
 
     <script>
         // Mốc thời gian hệ thống gốc dịch sang 2026
@@ -9295,48 +9382,42 @@ ${buildAIContext()}
             // API key hardcoded
         };
 
-        // ════ AUTO-HIDE HEADER khi cuộn — CHỈ iPhone + iPad (≤1279px) ════
+        // ════ AUTO-HIDE HEADER + BOTTOM NAV khi cuộn — CHỈ iPhone + iPad (≤1279px) ════
         (function initAutoHideHeader() {
             const header = document.querySelector('.app-header');
+            const bnav = document.getElementById('bottom-nav');
             if (!header) return;
             const mq = window.matchMedia('(max-width: 1279px)');
             let lastY = window.scrollY || 0;
             let ticking = false;
-            let accum = 0;              // quãng cuộn tích lũy cùng hướng
+            let accum = 0;
             let hidden = false;
-            const HIDE_TRIGGER  = 70;  // phải cuộn XUỐNG tổng ≥70px mới ẩn (mượt, không giật)
-            const SHOW_TRIGGER  = 36;  // cuộn LÊN tổng ≥36px thì hiện lại
-            const TOP_LOCK      = 64;  // gần đỉnh trang → luôn hiện
+            const HIDE_TRIGGER = 70, SHOW_TRIGGER = 36, TOP_LOCK = 64;
 
             let _wcTimer = null;
             function setHidden(v) {
-                if (v === hidden) return;     // KHÔNG toggle lại nếu trạng thái không đổi → hết nhấp nháy
+                if (v === hidden) return;
                 hidden = v;
-                // bật will-change CHỈ trong lúc animate, xong gỡ ngay để cuộn không bị nặng
                 header.style.willChange = 'transform, opacity';
                 header.classList.toggle('header-hidden', v);
+                // Bottom nav ẩn/hiện ĐỒNG BỘ với header
+                if (bnav) bnav.classList.toggle('nav-hidden', v);
                 if (_wcTimer) clearTimeout(_wcTimer);
                 _wcTimer = setTimeout(() => { header.style.willChange = 'auto'; }, 900);
             }
 
             function onScroll() {
                 const y = Math.max(0, window.scrollY || window.pageYOffset || 0);
-                if (!mq.matches) { setHidden(false); lastY = y; ticking = false; return; }
-
+                if (!mq.matches) { setHidden(false); lastY = y; ticking = false; bnUpdateActive(); return; }
                 const diff = y - lastY;
-                // đổi hướng → reset bộ đếm tích lũy
                 if ((diff > 0 && accum < 0) || (diff < 0 && accum > 0)) accum = 0;
                 accum += diff;
-
-                if (y <= TOP_LOCK) {
-                    setHidden(false); accum = 0;
-                } else if (accum > HIDE_TRIGGER) {
-                    setHidden(true);  accum = 0;
-                } else if (accum < -SHOW_TRIGGER) {
-                    setHidden(false); accum = 0;
-                }
+                if (y <= TOP_LOCK) { setHidden(false); accum = 0; }
+                else if (accum > HIDE_TRIGGER) { setHidden(true); accum = 0; }
+                else if (accum < -SHOW_TRIGGER) { setHidden(false); accum = 0; }
                 lastY = y;
                 ticking = false;
+                bnUpdateActive();
             }
             window.addEventListener('scroll', () => {
                 if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
@@ -9345,6 +9426,35 @@ ${buildAIContext()}
                 if (!e.matches) setHidden(false);
             });
         })();
+
+        // Cuộn mượt tới khu vực (trừ chiều cao header dính + chừa khoảng đệm)
+        function bnGo(targetId) {
+            const el = document.getElementById(targetId);
+            if (!el) return;
+            try { if (window.HAPTIC) HAPTIC.light && HAPTIC.light(); } catch(e){}
+            const header = document.querySelector('.app-header');
+            const offset = (header && !header.classList.contains('header-hidden') ? header.offsetHeight : 0) + 14;
+            const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        }
+
+        // Tô sáng mục đang xem theo vị trí cuộn
+        function bnUpdateActive() {
+            const ids = ['sec-overview','sec-plan','sec-tools'];
+            const mid = window.innerHeight * 0.35;
+            let current = ids[0];
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                const t = el.getBoundingClientRect().top;
+                if (t - mid <= 0) current = id;
+            }
+            document.querySelectorAll('#bottom-nav .bn-item').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-target') === current);
+            });
+        }
+        // chạy 1 lần khi tải xong để set active ban đầu
+        window.addEventListener('load', () => { try { bnUpdateActive(); } catch(e){} });
     </script>
 
     <!-- Floating CONT/SEAL/VGM Tooltip -->
