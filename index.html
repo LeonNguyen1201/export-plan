@@ -4356,7 +4356,7 @@
                                 <div class="grid grid-cols-12">
                                     <textarea id="cs-cont" rows="6" wrap="off" placeholder="MSKU1234567&#10;TGBU9876543&#10;REGU1234560" onpaste="handleColPaste(event,'cont')" oninput="handleContInput(this)" onkeydown="csTabNav(event,'cont')" class="col-span-4 px-2 py-1.5 text-[10px] font-mono resize-none focus:outline-none" style="min-height:110px;overflow-x:auto;white-space:pre"></textarea>
                                     <textarea id="cs-seal" rows="6" wrap="off" placeholder="VN12345&#10;VN67890&#10;VN24680" onpaste="handleColPaste(event,'seal')" oninput="handleSealVgmInput(this,'seal')" onkeydown="csTabNav(event,'seal')" class="col-span-5 px-2 py-1.5 text-[10px] font-mono resize-none focus:outline-none" style="min-height:110px; text-transform:uppercase;overflow-x:auto;white-space:pre"></textarea>
-                                    <textarea id="cs-vgm" rows="6" wrap="off" placeholder="22.500&#10;23.100&#10;23.800" onpaste="handleColPaste(event,'vgm')" oninput="handleSealVgmInput(this,'vgm')" onkeydown="csTabNav(event,'vgm')" class="col-span-3 px-2 py-1.5 text-[10px] font-mono resize-none focus:outline-none" style="min-height:110px;overflow-x:auto;white-space:pre"></textarea>
+                                    <textarea id="cs-vgm" rows="6" wrap="off" placeholder="22,500&#10;23,100&#10;23,800" onpaste="handleColPaste(event,'vgm')" oninput="handleSealVgmInput(this,'vgm')" onblur="formatVgmColumn()" onkeydown="csTabNav(event,'vgm')" class="col-span-3 px-2 py-1.5 text-[10px] font-mono resize-none focus:outline-none" style="min-height:110px;overflow-x:auto;white-space:pre"></textarea>
                                 </div>
                             </div>
                             <div id="cont-validation-msg" class="text-[9px] mt-0.5 text-slate-400">Dán độc lập từng cột · Container: 4 chữ hoa + 7 số · Ký tự thứ 4 phải là U, J hoặc Z</div>
@@ -5939,7 +5939,7 @@
             // Parse containerSeals from 3-column textareas
             const contLines = (document.getElementById('cs-cont').value || '').split('\n').map(l=>l.trim().toUpperCase()).filter(Boolean);
             const sealLines = (document.getElementById('cs-seal').value || '').split('\n').map(l=>l.trim()).filter(Boolean);
-            const vgmLines  = (document.getElementById('cs-vgm').value  || '').split('\n').map(l=>l.trim()).filter(Boolean);
+            const vgmLines  = (document.getElementById('cs-vgm').value  || '').split('\n').map(l=>l.trim()).filter(Boolean).map(l => _fmtVgm(l));
             const maxRows = Math.max(contLines.length, sealLines.length, vgmLines.length);
             const containerSeals = maxRows > 0 ? Array.from({length: maxRows}, (_, i) => ({
                 cont: contLines[i] || '',
@@ -7753,6 +7753,28 @@
             if (lines.length > contCount) {
                 ta.value = lines.slice(0, contCount).join('\n');
             }
+        }
+
+        // (Mục VGM) Chuẩn hóa MỖI dòng VGM về định dạng "xx,xxx" — phẩy ngăn cách hàng nghìn.
+        // Vd: "23.305" hoặc "23305" → "23,305". Bỏ ký tự không phải số trước khi format.
+        function _fmtVgm(raw) {
+            if (raw == null) return '';
+            const s = String(raw).trim();
+            if (s === '') return '';
+            // Lấy CHỈ chữ số (coi dấu . , space là phân cách, bỏ hết)
+            const digits = s.replace(/[^\d]/g, '');
+            if (digits === '') return s;          // không có số → giữ nguyên (không phá dữ liệu lạ)
+            // Bỏ số 0 vô nghĩa ở đầu nhưng giữ ít nhất 1 chữ số
+            const n = digits.replace(/^0+(?=\d)/, '');
+            // Chèn dấu phẩy ngăn cách hàng nghìn
+            return n.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+        // Format cả cột VGM khi rời ô (blur) — giữ đúng số dòng
+        function formatVgmColumn() {
+            const ta = document.getElementById('cs-vgm');
+            if (!ta) return;
+            const lines = ta.value.split('\n');
+            ta.value = lines.map(l => (l.trim() === '' ? l : _fmtVgm(l))).join('\n');
         }
 
         function validateContCol() {
