@@ -1824,6 +1824,18 @@
             }
         }
 
+        /* iPad DỌC: đảo thứ tự cho gọn — nhóm User-switch + Dark + Menu LÊN TRÊN,
+           đồng hồ ngày tháng + Cloud Realtime XUỐNG DƯỚI (giảm độ dày header). */
+        @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+            .app-header > div > div:last-child {
+                flex-wrap: wrap !important;
+                row-gap: 12px !important;
+            }
+            .app-header .user-dm-group { order: 1 !important; width: 100% !important; }
+            .app-header .chip-clock     { order: 2 !important; }
+            .app-header #cloud-status-badge { order: 3 !important; }
+        }
+
         /* ══════════════════════════════════════════
            MỤC 4 · PAGINATION (Kế Hoạch Chi Tiết)
         ══════════════════════════════════════════ */
@@ -2853,6 +2865,16 @@
                 -webkit-overflow-scrolling: touch;   /* cuộn mượt trên iOS */
                 overscroll-behavior: contain;        /* không "đẩy" cuộn ra ngoài khi tới đáy */
                 border-top: 1px solid var(--border);
+            }
+            /* Khi đã PHÂN TRANG (iPad dọc 5 lô / ngang 7 lô) → bỏ giới hạn chiều cao + tắt sub-scroll,
+               mỗi trang hiển thị trọn các lô, cuộn bằng trang chính. */
+            .table-scroll-wrap.is-paginated {
+                max-height: none !important;
+                overflow-y: visible !important;
+            }
+            /* iPhone (≤640px) KHÔNG phân trang → GIỮ sub-scroll, tăng chiều cao khung để thấy ~4 lô */
+            @media (max-width: 640px) {
+                .table-scroll-wrap:not(.is-paginated) { max-height: 84vh !important; }
             }
 
             #export-plan-main-table,
@@ -4932,11 +4954,11 @@
         let _planCurrentPage = 1;
         function getPlanPageSize() {
             const w = window.innerWidth;
-            if (w <= 640) return -1;                 // iPhone — không phân trang
             if (w >= 1280) return 7;                 // Web / Desktop
+            if (w <= 640) return -1;                 // iPhone — GIỮ sub-scroll (cuộn trong khung)
             // Vùng iPad (641–1279) — phân biệt dọc/ngang
             const portrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
-            return portrait ? 4 : 6;
+            return portrait ? 5 : 7;                 // iPad dọc 5 lô · iPad ngang 7 lô
         }
 
         // DOM Elements
@@ -5699,7 +5721,7 @@
                 wrap.classList.add('hidden');
                 // bật lại sub-scroll
                 const scrollWrap = document.getElementById('plan-table-scroll');
-                if (scrollWrap) scrollWrap.style.maxHeight = '';
+                if (scrollWrap) { scrollWrap.style.maxHeight = ''; scrollWrap.classList.remove('is-paginated'); }
                 return;
             }
             const totalPages = Math.max(1, Math.ceil(_fullRenderData.length / pageSize));
@@ -5708,7 +5730,7 @@
                 wrap.innerHTML = '';
                 wrap.classList.add('hidden');
                 const scrollWrap = document.getElementById('plan-table-scroll');
-                if (scrollWrap) scrollWrap.style.maxHeight = '';
+                if (scrollWrap) { scrollWrap.style.maxHeight = 'none'; scrollWrap.classList.add('is-paginated'); }
                 return;
             }
             const cur = Math.min(Math.max(1, _planCurrentPage), totalPages);
@@ -5716,7 +5738,7 @@
 
             // Khi có phân trang → tắt cuộn trong bảng (mỗi trang vừa khít chiều cao)
             const scrollWrap = document.getElementById('plan-table-scroll');
-            if (scrollWrap) scrollWrap.style.maxHeight = 'none';
+            if (scrollWrap) { scrollWrap.style.maxHeight = 'none'; scrollWrap.classList.add('is-paginated'); }
 
             // Cửa sổ tối đa 5 số trang gần currentPage
             const MAX_WIN = 5;
