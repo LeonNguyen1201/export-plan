@@ -1824,22 +1824,32 @@
             }
         }
 
-        /* iPad DỌC: gọn header — user-switch + Dark LÊN HÀNG TRÊN; đồng hồ + Cloud + Hamburger
-           XUỐNG HÀNG DƯỚI. TẤT CẢ căn LỀ PHẢI. */
+        /* iPad DỌC: KÉO cụm control LÊN ngang logo (cạnh "Logistics Control · 2026") để giảm độ dày header.
+           Logo trái — cụm control phải, căn TRÊN, xếp 2 dòng: (trên) user-switch + Dark · (dưới) đồng hồ + Cloud + Hamburger. */
         @media (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
-            /* cụm control: căn phải, cho phép xuống hàng */
+            /* quay lại hàng ngang, control căn lên đỉnh ngang với logo */
+            .app-header > div {
+                flex-direction: row !important;
+                align-items: flex-start !important;
+                justify-content: space-between !important;
+                gap: 16px !important;
+            }
+            /* cụm control: KHÔNG full bề ngang nữa — co theo nội dung, nằm bên phải, xuống 2 dòng */
             .app-header > div > div:last-child {
+                width: auto !important;
                 flex-wrap: wrap !important;
                 justify-content: flex-end !important;
+                align-content: flex-start !important;
                 row-gap: 12px !important;
             }
-            /* hàng trên: user-switch + Dark (chiếm trọn 1 hàng, đẩy về phải) */
+            /* hàng trên (trong cụm phải): user-switch + Dark — chiếm trọn bề ngang cụm, đẩy phải */
             .app-header .user-dm-group {
                 order: 1 !important;
                 width: 100% !important;
                 justify-content: flex-end !important;
+                flex-wrap: nowrap !important;
             }
-            /* hàng dưới: đồng hồ + Cloud + Hamburger — cùng 1 hàng, căn phải */
+            /* hàng dưới (trong cụm phải): đồng hồ + Cloud + Hamburger — căn phải */
             .app-header .chip-clock          { order: 2 !important; }
             .app-header #cloud-status-badge  { order: 3 !important; }
             .app-header .mobile-form-toggle  { order: 4 !important; }
