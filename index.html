@@ -8918,18 +8918,24 @@ ${buildAIContext()}
                 return 'CAO SU';
             }
 
-            // Styled Excel sheet builder
-            const BORD = { style:'thin', color:{rgb:'CCCCCC'} };
-            const CELL_BORDER = { top:BORD, bottom:BORD, left:BORD, right:BORD };
+            // ── Style KHỚP Y NGUYÊN TEMPLATE ──
+            // Header: Times New Roman 12 bold, chữ đen, nền xám D9D9D9, viền thin đen, căn giữa.
+            // Data:   font theo template (Cát Lái=Arial / Giang Nam=Calibri) 11, viền thin đen, number format text (@).
+            const T_BORD = { style:'thin', color:{rgb:'000000'} };
+            const T_CELL_BORDER = { top:T_BORD, bottom:T_BORD, left:T_BORD, right:T_BORD };
             const HDR_STYLE = {
-                font:{ bold:true, sz:9, color:{rgb:'FFFFFF'} },
-                fill:{ fgColor:{rgb:'1E3A8A'} },
-                alignment:{ horizontal:'center', vertical:'center', wrapText:true },
-                border:{ top:{style:'medium',color:{rgb:'1E3A8A'}}, bottom:{style:'medium',color:{rgb:'1E3A8A'}}, left:{style:'thin',color:{rgb:'3B82F6'}}, right:{style:'thin',color:{rgb:'3B82F6'}} }
+                font:{ name:'Times New Roman', bold:true, sz:12, color:{rgb:'000000'} },
+                fill:{ patternType:'solid', fgColor:{rgb:'D9D9D9'} },
+                alignment:{ horizontal:'center', vertical:'center' },
+                border: T_CELL_BORDER
             };
-            const DATA_STYLE = { font:{sz:9}, alignment:{horizontal:'left',vertical:'center'}, border:CELL_BORDER };
-            const CTR_STYLE  = { font:{sz:9}, alignment:{horizontal:'center',vertical:'center'}, border:CELL_BORDER };
-            const DEF_STYLE  = { font:{sz:9,color:{rgb:'1D4ED8'}}, alignment:{horizontal:'center',vertical:'center'}, border:CELL_BORDER };
+            function mkDataStyle(fontName){
+                return { font:{ name:fontName, sz:11 }, border:T_CELL_BORDER, alignment:{ vertical:'center' } };
+            }
+
+            // Bề rộng cột chính xác theo từng template
+            const CAT_LAI_W = [5.02,14.71,19,18.39,25.01,14.34,24.27,24.76,14.1,16.3,11.03,17.9,10.05,26.48,16.43,37.51,29.05,35.18,12.99,14.34,11.15,22.8,19.49,17.41,17.41,26.36,14.1,18.75,9.07,13,19.37,35.18,28.44,41.07];
+            const GN_W      = [5,13.8,19,17.33,23.33,14.33,22,13.46,14.46,14.13,10.46,18.46,10,26.46,16.46,37.46,29,37.13,13,14.33,11.13,22.8,19.46,17.46,17.46,26.33,14.13,18.8,9.13,13];
 
             function parseContSeal(cs) {
                 // If cont field contains merged data like "ABCD1234567 SEAL VGM"
@@ -8948,12 +8954,13 @@ ${buildAIContext()}
                 return {cont, seal, vgm};
             }
 
-            function buildStyledSheet(rows, cols) {
+            function buildStyledSheet(rows, cols, widths, dataFont) {
                 const ws = {};
                 let dataRow = 1;
                 let stt = 1;
+                const DATA_STYLE = mkDataStyle(dataFont);
 
-                // Header
+                // Header (row 1)
                 cols.forEach((col, ci) => {
                     const ref = XLSX.utils.encode_cell({r:0,c:ci});
                     ws[ref] = { v:col, t:'s', s:HDR_STYLE };
@@ -8995,29 +9002,22 @@ ${buildAIContext()}
                             QUY_CACH_DONG_GOI1:'', GHI_CHU_THONG_TIN_HANG_HOA:''
                         };
 
-                        // Default-value columns → blue highlight
-                        const defaultCols = new Set(['VGM','MAX_GROSS','SDT_NHAN_SDK','PHUONG_TIEN','TEN_CHU_HANG/DIEN_THOAI1','PHUONG_AN']);
-
                         cols.forEach((col, ci) => {
                             const ref = XLSX.utils.encode_cell({r:dataRow,c:ci});
                             const val = rowData[col] !== undefined ? rowData[col] : '';
-                            const isNum = col === 'STT';
-                            ws[ref] = {
-                                v: isNum ? (Number(val)||0) : String(val),
-                                t: isNum ? 'n' : 's',
-                                s: defaultCols.has(col) ? DEF_STYLE : (col==='STT' ? CTR_STYLE : DATA_STYLE)
-                            };
+                            // Khớp template: TẤT CẢ ô lưu dạng text (number format '@'), kể cả STT
+                            ws[ref] = { v: String(val), t: 's', s: DATA_STYLE, z: '@' };
                         });
                         dataRow++;
                     });
                 });
 
-                // Set range
+                // Range
                 ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:dataRow-1,c:cols.length-1}});
-                // Column widths
-                const wMap = {STT:5,PHUONG_AN:9,CHU_KHAI_THAC:14,SO_BOOK:18,TEN_TAU_XUAT:22,MA_CHUYEN:10,CANG_CHUYEN_TAI:18,CANG_DICH:18,SO_CONT:20,SO_SEAL:18,KICH_CO:8,TRONG_LUONG:12,VGM:6,DON_VI_KIEM_DINH:14,MAX_GROSS:10,'TEN_HANG_HOA/HOAT_CHAT':22,QUY_CACH_DONG_GOI:16,'TEN_CHU_HANG/DIEN_THOAI':22};
-                ws['!cols'] = cols.map(col => ({wch: wMap[col]||14}));
-                ws['!rows'] = [{hpt:32}]; // header height 32pt
+                // Column widths — KHỚP TEMPLATE
+                ws['!cols'] = cols.map((col, i) => ({ wch: (widths && widths[i] != null) ? widths[i] : 14 }));
+                // Header row height theo template (~27pt)
+                ws['!rows'] = [{ hpt: 27 }];
                 return ws;
             }
 
@@ -9026,7 +9026,7 @@ ${buildAIContext()}
             let exported = false;
 
             if (allCatLai.length > 0) {
-                const ws = buildStyledSheet(allCatLai, CAT_LAI_COLS);
+                const ws = buildStyledSheet(allCatLai, CAT_LAI_COLS, CAT_LAI_W, 'Arial');
                 XLSX.utils.book_append_sheet(wb, ws, 'GIAO_CONT_HANG');
                 XLSX.writeFile(wb, `HBCX_EirTemplate_Cat_Lai_${ts}.xlsx`);
                 exported = true;
@@ -9034,7 +9034,7 @@ ${buildAIContext()}
 
             if (giangNamRows.length > 0) {
                 const wb2 = XLSX.utils.book_new();
-                const ws2 = buildStyledSheet(giangNamRows, GN_COLS);
+                const ws2 = buildStyledSheet(giangNamRows, GN_COLS, GN_W, 'Calibri');
                 XLSX.utils.book_append_sheet(wb2, ws2, 'GIAO_CONT_HANG');
                 XLSX.writeFile(wb2, `HBCX_EirTemplate_Giang_Nam_${ts}.xlsx`);
                 exported = true;
