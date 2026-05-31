@@ -1732,18 +1732,21 @@
             [data-theme="dark"] #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
                 background: transparent !important;
             }
-            /* Bar chính của timeline (MOBILE DỌC) — canh TRÁI + độ rộng theo TỈ LỆ DURATION
-               (đóng hàng→ETD). 2 lô cùng duration sẽ DÀI BẰNG NHAU; không còn co méo theo
-               global-timeline trên màn hẹp. Giữ mức sàn để thanh không quá ngắn. */
+            /* Bar chính của timeline (MOBILE DỌC) — GIỮ NGUYÊN logic JS gốc:
+               margin-left = vị trí ngày đóng hàng, width = (ETD − đóng hàng) theo trục thời gian chung.
+               KHÔNG ép bằng nhau, KHÔNG ép full-width → ngày đóng hàng & ETD đặt đúng vị trí thực. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 height: 22px !important;
-                margin-left: 0 !important;
-                width: var(--g-durpct, 100%) !important;
-                min-width: 56px !important;
             }
-            /* Ẩn vạch "hôm nay" trên mobile dọc — thanh canh theo duration nên vạch theo lịch không còn đúng vị trí */
+            /* HIỆN vạch "hôm nay" trên mobile dọc — vị trí theo % trục thời gian chung. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
-                display: none !important;
+                display: block !important;
+            }
+            /* Tránh bôi-đen vô tình (long-press) làm thanh trông như bị cắt ngắn trên iPhone */
+            #gantt-rows-container > .grid.grid-cols-12 {
+                -webkit-user-select: none !important;
+                user-select: none !important;
+                -webkit-touch-callout: none !important;
             }
             /* Khu cuộn ngoài — bỏ luôn padding để bar dài bằng đúng card "Sơ Đồ Gantt" */
             #gantt-rows-container {
@@ -1753,32 +1756,36 @@
         }
 
         /* ══════════════════════════════════════════
-           (Mục 2 — iPad-dọc RIÊNG) Timeline kéo LÊN nằm cùng hàng với ngày Đóng hàng/ETD,
-           lấp khoảng trống bên phải (vị trí mũi tên đỏ). CHỈ áp dụng iPad-dọc, iPhone KHÔNG đụng.
+           (v3.1) iPad-dọc dùng CHUNG layout với iPhone: timeline là MỘT DẢI FULL-WIDTH riêng
+           bên dưới ngày Đóng hàng/ETD → thanh có đủ bề ngang để vẽ ĐÚNG trục thời gian chung
+           (ngày đóng hàng & ETD đúng vị trí, lô dài/ngắn theo đúng số ngày), kèm vạch "hôm nay".
+           (Trước đây iPad-dọc ép timeline nằm cạnh ngày, bị bóp hẹp nên thanh hiển thị sai.)
         ══════════════════════════════════════════ */
         @media (min-width: 641px) and (max-width: 1023px) and (orientation: portrait) {
             #gantt-rows-container > .grid.grid-cols-12 {
                 grid-template-areas:
                     "po       po"
-                    "stuff    timeline"
-                    "etd      timeline" !important;
-                row-gap: 4px !important;
-                align-items: center !important;
+                    "stuff    etd"
+                    "timeline timeline" !important;
+                row-gap: 7px !important;
+                align-items: start !important;
             }
+            /* Timeline: full ngang một dải dưới ngày — giống iPhone */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
-                display: flex !important;
-                align-items: center !important;
-                padding: 0 0 0 4px !important;
-                margin-top: 0 !important;
-                min-height: 44px !important;
+                display: block !important;
+                width: 100% !important;
+                padding: 4px 0 2px !important;
+                margin-top: 1px !important;
+                min-height: 30px !important;
             }
-            /* iPad-dọc: thanh dùng TỈ LỆ DURATION (kế thừa từ block mobile) + giữ mức sàn 60px. */
+            /* Bar GIỮ logic JS gốc (margin-left + width% theo trục thời gian chung). */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
+                height: 22px !important;
                 min-width: 60px !important;
             }
-            /* Ẩn vạch "hôm nay" — đồng bộ với iPhone (thanh canh theo duration, không theo lịch). */
+            /* HIỆN vạch "hôm nay" — vị trí theo % trục thời gian chung trong cell. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
-                display: none !important;
+                display: block !important;
             }
         }
 
@@ -7092,14 +7099,6 @@
             const endDate   = allDates.length ? new Date(Math.max(...allDates.map(d => d.getTime()))) : new Date("2026-05-30");
             const totalDays = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)));
 
-            // (v3.1) Độ dài lớn nhất (duration) trong các lô đang hiện — dùng cho layout MOBILE DỌC:
-            // mobile vẽ thanh theo TỈ LỆ DURATION (đóng hàng→ETD), canh trái đều → 2 lô cùng
-            // duration sẽ DÀI BẰNG NHAU (desktop vẫn giữ global-timeline như cũ).
-            const maxDur = Math.max(1, ...ganttData.map(it => {
-                const d = (new Date(it.etd) - new Date(it.dateStuffing)) / (1000 * 60 * 60 * 24);
-                return (isNaN(d) || d < 0) ? 0 : d;
-            }));
-
             // (PERF) Append vào fragment, 1 reflow duy nhất cuối cùng
             const _ganttFrag = document.createDocumentFragment();
             ganttData.forEach(item => {
@@ -7116,8 +7115,6 @@
                 const startOffset = (dateStuff - startDate) / (1000 * 60 * 60 * 24);
                 const leftPct  = Math.max(0, Math.min(98, (startOffset / totalDays) * 100));
                 const widthPct = Math.max(6, Math.min(100 - leftPct, (Math.max(1, duration) / totalDays) * 100));
-                // (v3.1) Tỉ lệ độ dài theo duration (cho mobile dọc) — tối thiểu 22% để không quá ngắn
-                const durPct = Math.max(22, Math.min(100, (Math.max(0.5, duration) / maxDur) * 100));
 
                 // Marker "hôm nay" theo global timeline
                 const todayOffset = (systemCurrentTime - startDate) / (1000 * 60 * 60 * 24);
@@ -7140,7 +7137,7 @@
                             <span class="absolute -top-1 left-1 bg-green-600 text-white rounded px-1 text-[7px] whitespace-nowrap font-bold shadow z-20">${String(systemCurrentTime.getDate()).padStart(2,'0')}-${systemCurrentTime.toLocaleString('en-US',{month:'short'})}</span>
                         </div>` : ''}
                         <div class="h-5 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-inner relative flex items-center overflow-hidden" 
-                             style="margin-left: ${leftPct}%; width: ${widthPct}%; min-width: 60px; --g-durpct: ${durPct}%;"
+                             style="margin-left: ${leftPct}%; width: ${widthPct}%; min-width: 60px;"
                              title="Từ Stuffing (${formatDate(item.dateStuffing)}) đến ETD (${formatDate(item.etd)}) · ${vesselName}">
                              <span class="text-[10px] text-white font-bold px-2 truncate whitespace-nowrap flex-1">${vesselName}</span>
                              ${Math.round(duration) >= 1 ? `<span class="text-[9px] text-white/90 pr-2 flex-shrink-0 font-semibold">${Math.round(duration)}d</span>` : ''}
