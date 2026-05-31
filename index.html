@@ -6252,8 +6252,9 @@
                 Object.keys(localStorage).forEach(k => { if (k.indexOf('export_plan_data') === 0) localStorage.removeItem(k); });
                 renderData();
             } catch(e){}
-            // Dừng đồng hồ tự đăng xuất
+            // Dừng đồng hồ tự đăng xuất + xóa mốc hoạt động
             try { if (typeof _idleTimer !== 'undefined' && _idleTimer) { clearTimeout(_idleTimer); _idleTimer = null; } } catch(e){}
+            try { localStorage.removeItem('ept_last_active'); } catch(e){}
             // Đăng xuất Firebase (onAuthStateChanged sẽ gỡ body.authed)
             try { if (fbAuth) await fbAuth.signOut(); } catch(e){}
             document.body.classList.remove('authed');
@@ -6264,10 +6265,26 @@
         }
 
         // ═══════════ (v3.1) TỰ ĐỘNG ĐĂNG XUẤT KHI KHÔNG HOẠT ĐỘNG ═══════════
+        // Dùng MỐC THỜI GIAN THỰC (wall-clock) lưu trong localStorage thay vì chỉ setTimeout,
+        // vì khi chuyển sang app khác iOS đóng băng JS → setTimeout bị dừng, không đếm tiếp.
+        // Khi quay lại / mở lại app sẽ so với đồng hồ thật: quá 60 phút thì đăng xuất ngay.
         const IDLE_LIMIT_MS = 60 * 60 * 1000;   // 60 phút
+        const IDLE_LS_KEY = 'ept_last_active';
         let _idleTimer = null;
+
+        function _markActive() {
+            try { localStorage.setItem(IDLE_LS_KEY, String(Date.now())); } catch(e){}
+        }
+        function _idleExceeded() {
+            try {
+                const last = parseInt(localStorage.getItem(IDLE_LS_KEY) || '0', 10);
+                if (!last) return false;
+                return (Date.now() - last) >= IDLE_LIMIT_MS;
+            } catch(e){ return false; }
+        }
         function _resetIdleTimer() {
             if (!document.body.classList.contains('authed')) return;   // chỉ áp dụng khi đã đăng nhập
+            _markActive();
             if (_idleTimer) clearTimeout(_idleTimer);
             _idleTimer = setTimeout(_onIdleTimeout, IDLE_LIMIT_MS);
         }
@@ -6276,12 +6293,20 @@
             try { showToast('🔒 Đã tự động đăng xuất do không hoạt động 60 phút.', 'error'); } catch(e){}
             try { agLogout(); } catch(e){}
         }
+        // Khi app quay lại tiền cảnh: so đồng hồ thật, quá hạn thì out ngay
+        function _checkIdleOnResume() {
+            if (!document.body.classList.contains('authed')) return;
+            if (_idleExceeded()) { _onIdleTimeout(); return; }
+            _resetIdleTimer();
+        }
         function _startIdleWatch() {
             ['mousemove','mousedown','keydown','touchstart','scroll','click','wheel'].forEach(ev => {
                 window.addEventListener(ev, _resetIdleTimer, { passive: true });
             });
-            // Khi quay lại tab: kiểm tra lại đồng hồ
-            document.addEventListener('visibilitychange', () => { if (!document.hidden) _resetIdleTimer(); });
+            // Quay lại tab / mở lại app từ nền → kiểm tra theo thời gian thực
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) _checkIdleOnResume(); });
+            window.addEventListener('focus', _checkIdleOnResume);
+            window.addEventListener('pageshow', _checkIdleOnResume);   // khi trang được khôi phục từ bfcache
             _resetIdleTimer();
         }
 
@@ -6290,6 +6315,14 @@
             initAuth();
             fbAuth.onAuthStateChanged(async (user) => {
                 if (user) {
+                    // (v3.1) Phiên được Firebase tự khôi phục (mở lại app sau khi đóng): nếu mốc hoạt động
+                    // cuối đã quá 60 phút thì ĐĂNG XUẤT NGAY, không cho vào app.
+                    if (_idleExceeded()) {
+                        try { showToast('🔒 Phiên đã hết hạn do không hoạt động 60 phút.', 'error'); } catch(e){}
+                        try { await fbAuth.signOut(); } catch(e){}
+                        document.body.classList.remove('authed');
+                        return;
+                    }
                     document.body.classList.add('authed');
                     agBusy(false);
                     _loginWarnPending = true;        // (v3.1) sẽ hiện cảnh báo rớt tàu sau khi data tải xong
