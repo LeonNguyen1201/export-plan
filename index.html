@@ -2116,9 +2116,10 @@
             from { opacity: 0; transform: translateY(8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        /* Trên mobile/iPad dọc: AI đã nằm trong bottom-nav → ẩn nút AI nổi để khỏi trùng */
+        /* Trên mobile/iPad dọc + iPad ngang: AI đã nằm trong bottom-nav → ẩn nút AI nổi để khỏi trùng */
         @media (max-width: 640px),
-               (min-width: 641px) and (max-width: 1279px) and (orientation: portrait) {
+               (min-width: 641px) and (max-width: 1279px) and (orientation: portrait),
+               (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
             #ai-float-btn { display: none !important; }
         }
 
