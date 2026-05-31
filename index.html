@@ -23,6 +23,7 @@
     <!-- Firebase Compat SDK - không cần auth, không timing issue -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <!-- Mục 4: xuất PDF phần thống kê (jsPDF + AutoTable, không cần html2canvas nữa) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- AutoTable: bảng PDF gọn gàng, tự xuống trang (redesign Export Chart PDF) -->
@@ -2755,6 +2756,243 @@
             .cutoff-flash { animation: none !important; }
         }
 
+        /* ═══════════════════════════════════════════════════════════
+           AUTH GATE · LANDING + ĐĂNG NHẬP / ĐĂNG KÝ (v3.0)
+        ═══════════════════════════════════════════════════════════ */
+        .auth-gate {
+            position: fixed; inset: 0; z-index: 200;
+            overflow-y: auto;
+            background:
+                radial-gradient(1200px 800px at 15% -10%, #1e3a8a 0%, transparent 55%),
+                radial-gradient(1000px 700px at 110% 10%, #0e7490 0%, transparent 50%),
+                linear-gradient(160deg, #0b1120 0%, #0f1b34 55%, #0b1120 100%);
+            color: #e2e8f0;
+            -webkit-font-smoothing: antialiased;
+        }
+        /* LIGHT MODE: nền sáng cho landing/auth (đồng bộ toàn app) */
+        html:not([data-theme="dark"]) .auth-gate {
+            background:
+                radial-gradient(1200px 800px at 15% -10%, #dbeafe 0%, transparent 55%),
+                radial-gradient(1000px 700px at 110% 10%, #cffafe 0%, transparent 50%),
+                linear-gradient(160deg, #f8fafc 0%, #eef2ff 55%, #f8fafc 100%);
+            color: #0f172a;
+        }
+        html:not([data-theme="dark"]) .ag-orb { opacity: 0.30; }
+        html:not([data-theme="dark"]) .ag-title,
+        html:not([data-theme="dark"]) .ag-card-title { color: #0f172a; }
+        html:not([data-theme="dark"]) .ag-tagline { color: #475569; }
+        html:not([data-theme="dark"]) .ag-feat { background: rgba(255,255,255,0.7); border-color: rgba(15,23,42,0.08); box-shadow: 0 6px 20px -10px rgba(15,23,42,0.18); }
+        html:not([data-theme="dark"]) .ag-feat h3 { color: #1e293b; }
+        html:not([data-theme="dark"]) .ag-feat p { color: #64748b; }
+        html:not([data-theme="dark"]) .ag-foot { color: #94a3b8; }
+        html:not([data-theme="dark"]) .ag-card {
+            background: rgba(255,255,255,0.78); border-color: rgba(15,23,42,0.08);
+            box-shadow: 0 30px 80px -20px rgba(15,23,42,0.25), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        html:not([data-theme="dark"]) .ag-card-sub { color: #64748b; }
+        html:not([data-theme="dark"]) .ag-back { background: rgba(15,23,42,0.05); border-color: rgba(15,23,42,0.1); color: #475569; }
+        html:not([data-theme="dark"]) .ag-seg { background: rgba(15,23,42,0.05); }
+        html:not([data-theme="dark"]) .ag-seg-btn { color: #64748b; }
+        html:not([data-theme="dark"]) .ag-field label { color: #334155; }
+        html:not([data-theme="dark"]) .ag-input-wrap input { background: #fff; border-color: #e2e8f0; color: #0f172a; }
+        html:not([data-theme="dark"]) .ag-input-wrap input::placeholder { color: #94a3b8; }
+        html:not([data-theme="dark"]) .ag-input-wrap > i,
+        html:not([data-theme="dark"]) .ag-eye { color: #94a3b8; }
+        html:not([data-theme="dark"]) .ag-switch { color: #64748b; }
+        html:not([data-theme="dark"]) .ag-or { color: #94a3b8; }
+        html:not([data-theme="dark"]) .ag-or::before, html:not([data-theme="dark"]) .ag-or::after { background: rgba(15,23,42,0.12); }
+        html:not([data-theme="dark"]) .ag-forgot-row button { color: #2563eb; }
+        html:not([data-theme="dark"]) .ag-google { border: 1px solid #e2e8f0; }
+
+        /* Nút Dark/Light nổi trên màn landing/auth (góc trên phải) */
+        .ag-theme-btn {
+            position: fixed; top: 18px; right: 18px; z-index: 3;
+            width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 17px;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #e2e8f0;
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            transition: transform 0.15s, background 0.2s;
+        }
+        .ag-theme-btn:hover { transform: scale(1.06); }
+        .ag-theme-btn:active { transform: scale(0.92); }
+        html:not([data-theme="dark"]) .ag-theme-btn { background: rgba(255,255,255,0.7); border-color: rgba(15,23,42,0.1); color: #1e293b; box-shadow: 0 6px 18px -6px rgba(15,23,42,0.2); }
+        body.authed .auth-gate { display: none !important; }
+        /* khi gate đang mở: khoá cuộn nền + ẩn các thanh nổi của app */
+        body:not(.authed) { overflow: hidden; }
+        body:not(.authed) #bottom-nav,
+        body:not(.authed) #ai-float-btn,
+        body:not(.authed) .app-header { display: none !important; }
+
+        .ag-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.5; pointer-events: none; }
+        .ag-orb-1 { width: 420px; height: 420px; background: #2563eb; top: -120px; left: -100px; }
+        .ag-orb-2 { width: 360px; height: 360px; background: #0891b2; bottom: -120px; right: -80px; }
+        .ag-orb-3 { width: 300px; height: 300px; background: #7c3aed; top: 40%; left: 60%; opacity: 0.32; }
+
+        .ag-screen { position: relative; z-index: 1; min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+
+        /* ── Landing ── */
+        .ag-land-wrap { max-width: 760px; width: 100%; text-align: center; animation: ag-fade-up 0.6s cubic-bezier(0.22,1,0.36,1); }
+        .ag-logo-badge {
+            width: 84px; height: 84px; margin: 0 auto 22px; border-radius: 24px;
+            display: flex; align-items: center; justify-content: center; font-size: 38px; color: #fff;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 20px 50px -12px rgba(37,99,235,0.7), inset 0 2px 0 rgba(255,255,255,0.3);
+        }
+        .ag-title { font-size: clamp(30px, 6vw, 46px); font-weight: 800; letter-spacing: -0.02em; color: #fff; margin: 0; }
+        .ag-ver { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: #60a5fa; margin: 8px 0 0; }
+        .ag-tagline { font-size: clamp(14px, 2.4vw, 17px); line-height: 1.6; color: #cbd5e1; max-width: 560px; margin: 18px auto 0; }
+        .ag-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 32px 0; text-align: left; }
+        .ag-feat {
+            display: flex; gap: 13px; align-items: flex-start; padding: 16px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; backdrop-filter: blur(8px);
+        }
+        .ag-feat-ic { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3); }
+        .ag-feat h3 { font-size: 14px; font-weight: 700; color: #f1f5f9; margin: 2px 0 4px; }
+        .ag-feat p { font-size: 12.5px; line-height: 1.5; color: #94a3b8; margin: 0; }
+        .ag-cta {
+            display: inline-flex; align-items: center; gap: 10px; margin-top: 4px;
+            padding: 15px 38px; border: none; border-radius: 9999px; cursor: pointer;
+            font-size: 16px; font-weight: 700; color: #fff;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 16px 40px -10px rgba(37,99,235,0.8), inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .ag-cta:hover { transform: translateY(-2px); box-shadow: 0 22px 50px -10px rgba(37,99,235,0.9); }
+        .ag-cta:active { transform: scale(0.97); }
+        .ag-cta i { transition: transform 0.2s ease; }
+        .ag-cta:hover i { transform: translateX(4px); }
+        .ag-foot { font-size: 11px; color: #64748b; margin-top: 28px; }
+
+        /* ── Auth card ── */
+        .ag-card {
+            position: relative; width: 100%; max-width: 420px; padding: 34px 30px 28px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 24px; backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+            box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.18);
+            animation: ag-fade-up 0.5s cubic-bezier(0.22,1,0.36,1);
+        }
+        .ag-back { position: absolute; top: 18px; left: 18px; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: #cbd5e1; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+        .ag-back:hover { background: rgba(255,255,255,0.12); }
+        .ag-card-logo { width: 60px; height: 60px; margin: 4px auto 16px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff; background: linear-gradient(135deg, #3b82f6, #1d4ed8); box-shadow: 0 14px 34px -10px rgba(37,99,235,0.7), inset 0 2px 0 rgba(255,255,255,0.3); }
+        .ag-card-title { font-size: 24px; font-weight: 800; color: #fff; text-align: center; margin: 0; }
+        .ag-card-sub { font-size: 13px; color: #94a3b8; text-align: center; margin: 6px 0 22px; }
+        .ag-seg { display: flex; gap: 4px; padding: 4px; background: rgba(0,0,0,0.25); border-radius: 12px; margin-bottom: 18px; }
+        .ag-seg-btn { flex: 1; padding: 9px; border: none; border-radius: 9px; background: transparent; color: #94a3b8; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .ag-seg-btn.active { background: rgba(59,130,246,0.9); color: #fff; box-shadow: 0 4px 12px -2px rgba(37,99,235,0.6); }
+        .ag-field { margin-bottom: 14px; }
+        .ag-field label { display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px; }
+        .ag-input-wrap { position: relative; display: flex; align-items: center; }
+        .ag-input-wrap > i { position: absolute; left: 14px; color: #64748b; font-size: 14px; pointer-events: none; }
+        .ag-input-wrap input {
+            width: 100%; padding: 13px 14px 13px 40px; border-radius: 13px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+            color: #f1f5f9; font-size: 15px; outline: none; transition: border-color 0.2s, background 0.2s;
+        }
+        .ag-input-wrap input::placeholder { color: #64748b; }
+        .ag-input-wrap input:focus { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+        .ag-eye { position: absolute; right: 10px; width: 32px; height: 32px; border: none; background: transparent; color: #64748b; cursor: pointer; }
+        .ag-error { background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 12.5px; font-weight: 600; padding: 10px 12px; border-radius: 11px; margin: 4px 0 14px; }
+        .ag-submit {
+            width: 100%; padding: 14px; border: none; border-radius: 13px; cursor: pointer; margin-top: 6px;
+            font-size: 15px; font-weight: 700; color: #fff;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 12px 30px -8px rgba(37,99,235,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: transform 0.15s, box-shadow 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .ag-submit:hover { transform: translateY(-1px); }
+        .ag-submit:active { transform: scale(0.98); }
+        .ag-submit:disabled { opacity: 0.7; cursor: wait; }
+        .ag-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #64748b; font-size: 12px; }
+        .ag-or::before, .ag-or::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.12); }
+        .ag-google {
+            width: 100%; padding: 12px; border-radius: 13px; cursor: pointer;
+            background: #fff; color: #1f2937; border: none; font-size: 14px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 6px 18px -6px rgba(0,0,0,0.4);
+        }
+        .ag-google:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -6px rgba(0,0,0,0.5); }
+        .ag-google:active { transform: scale(0.98); }
+        .ag-switch { text-align: center; font-size: 13px; color: #94a3b8; margin: 18px 0 0; }
+        .ag-switch button { background: none; border: none; color: #60a5fa; font-weight: 700; cursor: pointer; font-size: 13px; }
+        .ag-forgot-row { text-align: right; margin: -4px 0 12px; }
+        .ag-forgot-row button { background: none; border: none; color: #93c5fd; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+        .ag-forgot-row button:hover { text-decoration: underline; }
+        .ag-success { background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.4); color: #6ee7b7; font-size: 12.5px; font-weight: 600; padding: 10px 12px; border-radius: 11px; margin: 4px 0 14px; }
+        @keyframes ag-fade-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 560px) {
+            .ag-features { grid-template-columns: 1fr; }
+            .ag-screen { padding: 28px 16px; }
+        }
+
+        /* (v3.0) Chip tài khoản + đăng xuất trên header — đồng bộ kính */
+        .acct-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 14px; border-radius: 9999px; cursor: pointer;
+            background: rgba(255,255,255,0.20);
+            backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.45);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 6px 20px -8px rgba(15,23,42,0.12);
+            color: var(--text-primary); font-size: 13px; font-weight: 700;
+            min-height: 44px; transition: transform 0.15s, background 0.2s;
+        }
+        .acct-chip:hover { background: rgba(255,255,255,0.32); }
+        .acct-chip:active { transform: scale(0.97); }
+        .acct-chip > .fa-circle-user { font-size: 17px; color: #2563eb; }
+        .acct-chip .acct-out { font-size: 12px; color: var(--text-muted); }
+        .acct-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        [data-theme="dark"] .acct-chip {
+            background: rgba(17,24,39,0.34); border-color: rgba(255,255,255,0.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 20px -8px rgba(0,0,0,0.45);
+        }
+        [data-theme="dark"] .acct-chip > .fa-circle-user { color: #93c5fd; }
+        @media (max-width: 1279px) {
+            .acct-name { display: none; }   /* gọn trên mobile/iPad: chỉ icon */
+            .acct-chip { padding: 0; width: 44px; justify-content: center; }
+            .acct-chip .acct-out { display: none; }
+        }
+
+        /* ═══════════ MODAL HỒ SƠ TÀI KHOẢN (v3.0) ═══════════ */
+        .profile-modal { position: fixed; inset: 0; z-index: 210; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .pm-overlay { position: absolute; inset: 0; background: rgba(15,23,42,0.55); backdrop-filter: blur(4px); }
+        .pm-card {
+            position: relative; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 22px;
+            padding: 26px 24px 22px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5);
+            animation: ag-fade-up 0.35s cubic-bezier(0.22,1,0.36,1);
+        }
+        .pm-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--border); background: var(--bg-card-alt); color: var(--text-secondary); cursor: pointer; font-size: 15px; }
+        .pm-close:hover { background: var(--bg-hover); }
+        .pm-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+        .pm-avatar { flex: 0 0 auto; width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #fff; background: linear-gradient(135deg,#3b82f6,#1d4ed8); text-transform: uppercase; }
+        .pm-name { font-size: 17px; font-weight: 800; color: var(--text-primary); }
+        .pm-email { font-size: 12.5px; color: var(--text-secondary); margin-top: 1px; word-break: break-all; }
+        .pm-verify { display: inline-block; margin-top: 5px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; }
+        .pm-verify.ok { background: rgba(16,185,129,0.16); color: #059669; }
+        .pm-verify.no { background: rgba(245,158,11,0.16); color: #d97706; }
+        .pm-verify-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #92400e; background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.35); border-radius: 12px; padding: 9px 12px; margin-bottom: 16px; }
+        [data-theme="dark"] .pm-verify-row { color: #fcd34d; }
+        .pm-verify-row button { margin-left: auto; background: #d97706; color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .pm-section { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .pm-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+        .pm-row { display: flex; gap: 8px; }
+        .pm-input { width: 100%; padding: 11px 13px; border-radius: 11px; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); font-size: 14px; outline: none; }
+        .pm-input:focus { border-color: var(--input-focus); }
+        .pm-btn { border: none; border-radius: 11px; padding: 11px 16px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; transition: transform 0.15s, filter 0.15s; white-space: nowrap; }
+        .pm-btn:active { transform: scale(0.97); }
+        .pm-btn-full { width: 100%; }
+        .pm-btn-blue { background: linear-gradient(135deg,#3b82f6,#2563eb); color: #fff; }
+        .pm-btn-ghost { background: var(--bg-card-alt); color: var(--text-secondary); border: 1px solid var(--border); }
+        .pm-btn-danger { background: rgba(239,68,68,0.12); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); }
+        .pm-btn-danger:hover { background: rgba(239,68,68,0.2); }
+        .pm-actions { display: flex; gap: 10px; margin-top: 4px; }
+        .pm-actions .pm-btn { flex: 1; }
+        .pm-msg { font-size: 12.5px; font-weight: 600; padding: 10px 12px; border-radius: 11px; margin: 4px 0 14px; }
+        .pm-msg.ok { background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.4); color: #059669; }
+        .pm-msg.err { background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.4); color: #dc2626; }
+        [data-theme="dark"] .pm-msg.ok { color: #6ee7b7; }
+        [data-theme="dark"] .pm-msg.err { color: #fca5a5; }
+
         /* ── (2·3·4) POPOVER cho các nút Tiện ích (KHÔNG bị .ql-box cắt) ──
            Menu được JS chuyển sang position:fixed & gắn vào <body>,
            nên overflow:hidden của .ql-box không thể che mất nội dung.      */
@@ -3931,6 +4169,166 @@
 </head>
 <body class="min-h-screen flex flex-col lg-fluid-bg" style="color:var(--text-primary);">
 
+    <!-- ═══════════════════════════════════════════════════════════
+         GATE: LANDING PAGE + ĐĂNG NHẬP / ĐĂNG KÝ (v3.0)
+         Hiện đầu tiên; sau khi đăng nhập sẽ ẩn để lộ app.
+    ═══════════════════════════════════════════════════════════ -->
+    <div id="auth-gate" class="auth-gate">
+        <!-- nền trang trí -->
+        <div class="ag-orb ag-orb-1"></div>
+        <div class="ag-orb ag-orb-2"></div>
+        <div class="ag-orb ag-orb-3"></div>
+        <button type="button" class="ag-theme-btn" onclick="agToggleTheme()" title="Chuyển Sáng / Tối" aria-label="Chuyển giao diện sáng tối">
+            <i class="fa-solid fa-moon" id="ag-theme-ic"></i>
+        </button>
+
+        <!-- ░░░ MÀN 1 · LANDING (giới thiệu) ░░░ -->
+        <section id="ag-landing" class="ag-screen">
+            <div class="ag-land-wrap">
+                <div class="ag-logo-badge"><i class="fa-solid fa-ship"></i></div>
+                <h1 class="ag-title">Export Plan Tracker</h1>
+                <p class="ag-ver">VERSION 3.0 · LOGISTICS CONTROL 2026</p>
+                <p class="ag-tagline">
+                    Hệ thống quản lý kế hoạch hàng xuất khẩu thông minh — theo dõi container, tờ khai,
+                    lịch tàu &amp; tiến độ theo thời gian thực, đồng bộ Cloud cho cả nhóm.
+                </p>
+
+                <div class="ag-features">
+                    <div class="ag-feat">
+                        <span class="ag-feat-ic" style="background:linear-gradient(135deg,#3b82f6,#2563eb)"><i class="fa-solid fa-clipboard-list"></i></span>
+                        <div><h3>Kế hoạch &amp; Container</h3><p>Quản lý PO, booking, cont/seal/VGM, phân luồng tờ khai gọn trong một màn hình.</p></div>
+                    </div>
+                    <div class="ag-feat">
+                        <span class="ag-feat-ic" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)"><i class="fa-solid fa-chart-pie"></i></span>
+                        <div><h3>Thống kê &amp; Gantt</h3><p>Biểu đồ sản lượng, tỷ trọng thị trường và sơ đồ Gantt tiến độ đóng hàng — tàu chạy.</p></div>
+                    </div>
+                    <div class="ag-feat">
+                        <span class="ag-feat-ic" style="background:linear-gradient(135deg,#10b981,#059669)"><i class="fa-solid fa-file-excel"></i></span>
+                        <div><h3>Excel &amp; Eport</h3><p>Nhập/xuất Excel, xuất file Eport khớp template Cát Lái / SP-ITC chỉ với một chạm.</p></div>
+                    </div>
+                    <div class="ag-feat">
+                        <span class="ag-feat-ic" style="background:linear-gradient(135deg,#06b6d4,#0891b2)"><i class="fa-solid fa-cloud"></i></span>
+                        <div><h3>Cloud Realtime</h3><p>Dữ liệu đồng bộ tức thì giữa các thiết bị, an toàn theo từng tài khoản riêng.</p></div>
+                    </div>
+                </div>
+
+                <button type="button" class="ag-cta" onclick="agShowAuth('login')">
+                    Bắt đầu sử dụng <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <p class="ag-foot">© 2026 Export Plan Tracker System · Realtime Cloud Database</p>
+            </div>
+        </section>
+
+        <!-- ░░░ MÀN 2 · AUTH (đăng nhập / đăng ký) ░░░ -->
+        <section id="ag-auth" class="ag-screen" style="display:none">
+            <div class="ag-card">
+                <button type="button" class="ag-back" onclick="agBackToLanding()" title="Quay lại"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="ag-card-logo"><i class="fa-solid fa-ship"></i></div>
+                <h2 id="ag-auth-title" class="ag-card-title">Đăng nhập</h2>
+                <p id="ag-auth-sub" class="ag-card-sub">Chào mừng trở lại! Đăng nhập để tiếp tục.</p>
+
+                <!-- chọn phương thức: Email / Username -->
+                <div class="ag-seg">
+                    <button type="button" id="ag-seg-email" class="ag-seg-btn active" onclick="agSetMethod('email')">Email</button>
+                    <button type="button" id="ag-seg-username" class="ag-seg-btn" onclick="agSetMethod('username')">Tên đăng nhập</button>
+                </div>
+
+                <div class="ag-field" id="ag-field-email">
+                    <label>Email</label>
+                    <div class="ag-input-wrap"><i class="fa-solid fa-envelope"></i>
+                        <input type="email" id="ag-email" autocomplete="email" placeholder="ban@congty.com" inputmode="email">
+                    </div>
+                </div>
+                <div class="ag-field" id="ag-field-username" style="display:none">
+                    <label>Tên đăng nhập</label>
+                    <div class="ag-input-wrap"><i class="fa-solid fa-user"></i>
+                        <input type="text" id="ag-username" autocomplete="username" placeholder="ten_dang_nhap">
+                    </div>
+                </div>
+                <div class="ag-field" id="ag-field-name" style="display:none">
+                    <label>Tên hiển thị</label>
+                    <div class="ag-input-wrap"><i class="fa-solid fa-id-badge"></i>
+                        <input type="text" id="ag-displayname" autocomplete="name" placeholder="Nguyễn Văn A">
+                    </div>
+                </div>
+                <div class="ag-field">
+                    <label>Mật khẩu</label>
+                    <div class="ag-input-wrap"><i class="fa-solid fa-lock"></i>
+                        <input type="password" id="ag-password" autocomplete="current-password" placeholder="••••••••">
+                        <button type="button" class="ag-eye" onclick="agTogglePw()" tabindex="-1"><i class="fa-solid fa-eye" id="ag-eye-ic"></i></button>
+                    </div>
+                </div>
+
+                <p id="ag-error" class="ag-error" style="display:none"></p>
+
+                <p id="ag-forgot-row" class="ag-forgot-row">
+                    <button type="button" onclick="agForgotPassword()">Quên mật khẩu?</button>
+                </p>
+
+                <button type="button" id="ag-submit" class="ag-submit" onclick="agSubmit()">
+                    <span id="ag-submit-text">Đăng nhập</span>
+                    <i class="fa-solid fa-spinner fa-spin" id="ag-submit-spin" style="display:none"></i>
+                </button>
+
+                <div class="ag-or"><span>hoặc</span></div>
+
+                <button type="button" class="ag-google" onclick="agGoogle()">
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.8-6.8C35.6 2.4 30.1 0 24 0 14.6 0 6.4 5.4 2.5 13.3l7.9 6.1C12.3 13.3 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-16.5z"/><path fill="#FBBC05" d="M10.4 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.5 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.6 2.1-7.9 2.1-6.4 0-11.7-3.8-13.6-9.4l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
+                    Tiếp tục với Google
+                </button>
+
+                <p class="ag-switch" id="ag-switch">
+                    Chưa có tài khoản? <button type="button" onclick="agToggleMode()">Đăng ký ngay</button>
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <!-- ═══════════ MODAL HỒ SƠ TÀI KHOẢN (v3.0) ═══════════ -->
+    <div id="profile-modal" class="profile-modal" style="display:none">
+        <div class="pm-overlay" onclick="closeProfile()"></div>
+        <div class="pm-card">
+            <button type="button" class="pm-close" onclick="closeProfile()" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+            <div class="pm-head">
+                <div class="pm-avatar" id="pm-avatar">A</div>
+                <div class="pm-id">
+                    <div class="pm-name" id="pm-name">Tài khoản</div>
+                    <div class="pm-email" id="pm-email">—</div>
+                    <span class="pm-verify" id="pm-verify"></span>
+                </div>
+            </div>
+
+            <!-- Nhắc xác minh email (ẩn nếu đã xác minh / tài khoản username) -->
+            <div class="pm-verify-row" id="pm-verify-row" style="display:none">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>Email của bạn chưa được xác minh.</span>
+                <button type="button" onclick="profileResendVerify()" id="pm-resend-btn">Gửi lại</button>
+            </div>
+
+            <div class="pm-section">
+                <label class="pm-label">Tên hiển thị</label>
+                <div class="pm-row">
+                    <input type="text" id="pm-displayname" placeholder="Tên hiển thị" class="pm-input">
+                    <button type="button" class="pm-btn pm-btn-blue" onclick="profileSaveName()">Lưu</button>
+                </div>
+            </div>
+
+            <div class="pm-section" id="pm-pw-section">
+                <label class="pm-label">Đổi mật khẩu</label>
+                <input type="password" id="pm-pw-old" placeholder="Mật khẩu hiện tại" class="pm-input" style="margin-bottom:8px" autocomplete="current-password">
+                <input type="password" id="pm-pw-new" placeholder="Mật khẩu mới (≥ 6 ký tự)" class="pm-input" style="margin-bottom:8px" autocomplete="new-password">
+                <button type="button" class="pm-btn pm-btn-blue pm-btn-full" onclick="profileChangePw()">Cập nhật mật khẩu</button>
+            </div>
+
+            <p id="pm-msg" class="pm-msg" style="display:none"></p>
+
+            <div class="pm-actions">
+                <button type="button" class="pm-btn pm-btn-ghost" onclick="agLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất</button>
+                <button type="button" class="pm-btn pm-btn-danger" onclick="profileDeleteAccount()"><i class="fa-solid fa-trash-can"></i> Xóa tài khoản</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header ứng dụng -->
     <header class="sticky top-0 z-40 app-header theme-transition">
         <div class="max-w-[1820px] mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-3" style="color: rgb(24, 22, 49)">
@@ -3991,6 +4389,13 @@
                         <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this.checked)">
                         <span class="dm-track"></span>
                     </label>
+
+                    <!-- (v3.0) Tài khoản — bấm mở Hồ sơ -->
+                    <button type="button" class="acct-chip" onclick="openProfile()" title="Hồ sơ tài khoản">
+                        <i class="fa-solid fa-circle-user"></i>
+                        <span id="acct-name" class="acct-name">Tài khoản</span>
+                        <i class="fa-solid fa-chevron-down acct-out"></i>
+                    </button>
 
                 </div>
             </div>
@@ -5419,12 +5824,408 @@
         };
 
         let fbDb = null;
+        let fbAuth = null;
 
         function initFirebase() {
             if (fbDb) return;
             if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
             fbDb = firebase.firestore();
         }
+        function initAuth() {
+            if (fbAuth) return fbAuth;
+            if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+            fbAuth = firebase.auth();
+            try { fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e){}
+            return fbAuth;
+        }
+
+        // ═══════════════ AUTH GATE (v3.0) ═══════════════
+        const USERNAME_DOMAIN = '@user.exportplan.app';   // username → email nội bộ (dùng email/password auth)
+        let _agMode = 'login';      // 'login' | 'signup'
+        let _agMethod = 'email';    // 'email' | 'username'
+        let _agBusy = false;
+        let _justSignedUp = false;
+
+        function agShowAuth(mode) {
+            _agMode = mode || 'login';
+            document.getElementById('ag-landing').style.display = 'none';
+            document.getElementById('ag-auth').style.display = 'flex';
+            agRenderMode();
+        }
+        function agBackToLanding() {
+            document.getElementById('ag-auth').style.display = 'none';
+            document.getElementById('ag-landing').style.display = 'flex';
+            agHideError();
+        }
+        function agToggleMode() { _agMode = (_agMode === 'login') ? 'signup' : 'login'; agRenderMode(); }
+        // Chuyển Sáng/Tối ngay trên landing/auth — dùng chung toggleDarkMode của app
+        function agToggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const toDark = !isDark;
+            if (typeof toggleDarkMode === 'function') toggleDarkMode(toDark);
+            else {
+                if (toDark) document.documentElement.setAttribute('data-theme','dark');
+                else document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('ep_dark_mode', toDark ? '1':'0');
+            }
+            // đồng bộ checkbox dark-mode trong header
+            const cb = document.getElementById('dark-mode-toggle'); if (cb) cb.checked = toDark;
+            agSyncThemeIcon();
+        }
+        function agSyncThemeIcon() {
+            const ic = document.getElementById('ag-theme-ic');
+            if (!ic) return;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            ic.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+        function agRenderMode() {
+            const isSignup = _agMode === 'signup';
+            document.getElementById('ag-auth-title').innerText = isSignup ? 'Đăng ký tài khoản' : 'Đăng nhập';
+            document.getElementById('ag-auth-sub').innerText = isSignup
+                ? 'Tạo tài khoản mới để bắt đầu quản lý kế hoạch.'
+                : 'Chào mừng trở lại! Đăng nhập để tiếp tục.';
+            document.getElementById('ag-submit-text').innerText = isSignup ? 'Đăng ký' : 'Đăng nhập';
+            document.getElementById('ag-field-name').style.display = isSignup ? 'block' : 'none';
+            document.getElementById('ag-password').setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password');
+            document.getElementById('ag-switch').innerHTML = isSignup
+                ? 'Đã có tài khoản? <button type="button" onclick="agToggleMode()">Đăng nhập</button>'
+                : 'Chưa có tài khoản? <button type="button" onclick="agToggleMode()">Đăng ký ngay</button>';
+            agUpdateForgotVisibility();
+            agHideError(); agHideSuccess();
+        }
+        // Chỉ hiện "Quên mật khẩu?" khi ĐĂNG NHẬP bằng EMAIL
+        function agUpdateForgotVisibility() {
+            const row = document.getElementById('ag-forgot-row');
+            if (row) row.style.display = (_agMode === 'login' && _agMethod === 'email') ? 'block' : 'none';
+        }
+        function agSetMethod(m) {
+            _agMethod = m;
+            document.getElementById('ag-seg-email').classList.toggle('active', m === 'email');
+            document.getElementById('ag-seg-username').classList.toggle('active', m === 'username');
+            document.getElementById('ag-field-email').style.display = (m === 'email') ? 'block' : 'none';
+            document.getElementById('ag-field-username').style.display = (m === 'username') ? 'block' : 'none';
+            agUpdateForgotVisibility();
+            agHideError(); agHideSuccess();
+        }
+        function agTogglePw() {
+            const i = document.getElementById('ag-password');
+            const ic = document.getElementById('ag-eye-ic');
+            const show = i.type === 'password';
+            i.type = show ? 'text' : 'password';
+            ic.className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        }
+        function agShowError(msg) { const e = document.getElementById('ag-error'); e.innerText = msg; e.style.display = 'block'; agHideSuccess(); }
+        function agHideError() { const e = document.getElementById('ag-error'); if (e) e.style.display = 'none'; }
+        function agShowSuccess(msg) {
+            let s = document.getElementById('ag-success');
+            if (!s) {
+                s = document.createElement('p'); s.id = 'ag-success'; s.className = 'ag-success';
+                const err = document.getElementById('ag-error');
+                err.parentNode.insertBefore(s, err.nextSibling);
+            }
+            s.innerText = msg; s.style.display = 'block'; agHideError();
+        }
+        function agHideSuccess() { const s = document.getElementById('ag-success'); if (s) s.style.display = 'none'; }
+
+        // Quên mật khẩu — chỉ áp dụng tài khoản Email (username/Google không đặt lại kiểu này)
+        async function agForgotPassword() {
+            agHideError(); agHideSuccess();
+            if (_agMethod !== 'email') {
+                return agShowError('Đặt lại mật khẩu chỉ áp dụng cho tài khoản Email. Tài khoản tên đăng nhập vui lòng liên hệ quản trị.');
+            }
+            const email = document.getElementById('ag-email').value.trim();
+            if (!email) return agShowError('Nhập email của bạn rồi bấm "Quên mật khẩu?" để nhận liên kết đặt lại.');
+            initAuth();
+            try {
+                await fbAuth.sendPasswordResetEmail(email);
+                agShowSuccess('Đã gửi liên kết đặt lại mật khẩu tới ' + email + '. Vui lòng kiểm tra hộp thư (cả mục Spam).');
+            } catch (err) {
+                agShowError(_agMapError(err));
+            }
+        }
+        function agBusy(on) {
+            _agBusy = on;
+            document.getElementById('ag-submit').disabled = on;
+            document.getElementById('ag-submit-spin').style.display = on ? 'inline-block' : 'none';
+            document.getElementById('ag-submit-text').style.opacity = on ? '0.6' : '1';
+        }
+        function _agMapError(err) {
+            const c = (err && err.code) || '';
+            const m = {
+                'auth/invalid-email': 'Email không hợp lệ.',
+                'auth/user-not-found': 'Tài khoản không tồn tại.',
+                'auth/wrong-password': 'Sai mật khẩu.',
+                'auth/invalid-credential': 'Sai tài khoản hoặc mật khẩu.',
+                'auth/email-already-in-use': 'Tài khoản này đã tồn tại.',
+                'auth/weak-password': 'Mật khẩu phải từ 6 ký tự trở lên.',
+                'auth/too-many-requests': 'Thử quá nhiều lần. Vui lòng đợi một lát.',
+                'auth/network-request-failed': 'Lỗi mạng. Kiểm tra kết nối Internet.',
+                'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập Google.',
+                'auth/operation-not-allowed': 'Phương thức đăng nhập này chưa được bật trong Firebase Console.'
+            };
+            return m[c] || (err && err.message) || 'Có lỗi xảy ra, vui lòng thử lại.';
+        }
+
+        async function agSubmit() {
+            if (_agBusy) return;
+            agHideError();
+            const pw = document.getElementById('ag-password').value;
+            let email = '';
+            if (_agMethod === 'email') {
+                email = document.getElementById('ag-email').value.trim();
+                if (!email) return agShowError('Vui lòng nhập email.');
+            } else {
+                const uname = document.getElementById('ag-username').value.trim().toLowerCase();
+                if (!uname) return agShowError('Vui lòng nhập tên đăng nhập.');
+                if (!/^[a-z0-9._-]{3,}$/.test(uname)) return agShowError('Tên đăng nhập ≥ 3 ký tự, chỉ gồm chữ thường, số, . _ -');
+                email = uname + USERNAME_DOMAIN;
+            }
+            if (!pw || pw.length < 6) return agShowError('Mật khẩu phải từ 6 ký tự trở lên.');
+
+            initAuth();
+            agBusy(true);
+            try {
+                if (_agMode === 'signup') {
+                    const cred = await fbAuth.createUserWithEmailAndPassword(email, pw);
+                    const dn = document.getElementById('ag-displayname').value.trim();
+                    if (dn && cred.user) { try { await cred.user.updateProfile({ displayName: dn }); } catch(e){} }
+                    // (v3.0) Xác minh email — chỉ với tài khoản EMAIL thật (username dùng domain nội bộ nên bỏ qua)
+                    if (_agMethod === 'email' && cred.user) {
+                        try { await cred.user.sendEmailVerification(); } catch(e){}
+                    }
+                    // onAuthStateChanged sẽ đưa vào app; cờ để hiện nhắc xác minh
+                    _justSignedUp = (_agMethod === 'email');
+                } else {
+                    await fbAuth.signInWithEmailAndPassword(email, pw);
+                }
+                // onAuthStateChanged sẽ lo phần vào app
+            } catch (err) {
+                agBusy(false);
+                agShowError(_agMapError(err));
+            }
+        }
+
+        async function agGoogle() {
+            agHideError();
+            initAuth();
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await fbAuth.signInWithPopup(provider);
+            } catch (err) {
+                agShowError(_agMapError(err));
+            }
+        }
+
+        async function agLogout() {
+            try { if (fbAuth) await fbAuth.signOut(); } catch(e){}
+            // ngắt cloud + xoá phòng theo phiên
+            try { if (typeof disconnectCloud === 'function') disconnectCloud(); } catch(e){}
+            localStorage.removeItem('carot_cloud_room');
+            document.body.classList.remove('authed');
+            agBackToLanding();
+            // reset form
+            const p = document.getElementById('ag-password'); if (p) p.value = '';
+        }
+
+        // Cổng xác thực: theo dõi trạng thái đăng nhập
+        function startAuthGate() {
+            initAuth();
+            fbAuth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    document.body.classList.add('authed');
+                    agBusy(false);
+                    await enterAppForUser(user);
+                } else {
+                    document.body.classList.remove('authed');
+                }
+            });
+        }
+
+        // Vào app cho 1 tài khoản: phòng Cloud = uid (mỗi tài khoản dữ liệu RIÊNG)
+        let _enteredUid = null;
+        async function enterAppForUser(user) {
+            if (_enteredUid === user.uid) return;   // đã vào rồi
+            _enteredUid = user.uid;
+            const room = 'u_' + user.uid;
+
+            // Di trú 1 lần: dữ liệu local hiện có → gắn vào TÀI KHOẢN ĐẦU TIÊN đăng nhập
+            try {
+                if (!localStorage.getItem('ep_migrated_to_account') && Array.isArray(dbData) && dbData.length > 0) {
+                    initFirebase();
+                    const colRef = fbDb.collection('carotplan_rooms').doc(room).collection('records');
+                    const batch = fbDb.batch();
+                    dbData.forEach(rec => {
+                        if (!rec || !rec.id) return;
+                        batch.set(colRef.doc(String(rec.id)), rec, { merge: true });
+                    });
+                    await batch.commit();
+                    localStorage.setItem('ep_migrated_to_account', '1');
+                }
+            } catch (e) { /* migrate lỗi thì bỏ qua, vẫn vào app */ }
+
+            // Hiển thị tên tài khoản (nếu có ô)
+            try {
+                const nameEl = document.getElementById('acct-name');
+                if (nameEl) nameEl.innerText = user.displayName || (user.email || '').replace(USERNAME_DOMAIN, '') || 'Tài khoản';
+            } catch(e){}
+
+            // Kết nối phòng riêng của tài khoản
+            localStorage.setItem('carot_cloud_room', room);
+            if (typeof connectToCloud === 'function') connectToCloud(room);
+
+            // (v3.0) Nhắc xác minh email sau khi vừa đăng ký (tài khoản email thật, chưa verify)
+            const isInternal = (user.email || '').endsWith(USERNAME_DOMAIN);
+            if (_justSignedUp && !isInternal && user.email && !user.emailVerified) {
+                _justSignedUp = false;
+                setTimeout(() => {
+                    try { showToast('📧 Đã gửi email xác minh tới ' + user.email + '. Hãy kiểm tra hộp thư!', 'success'); } catch(e){}
+                }, 800);
+            }
+        }
+
+        // ═══════════ HỒ SƠ TÀI KHOẢN (v3.0) ═══════════
+        function _currentUser() { return (fbAuth && fbAuth.currentUser) || null; }
+        function _isInternalEmail(email) { return (email || '').endsWith(USERNAME_DOMAIN); }
+        function pmMsg(msg, ok) {
+            const el = document.getElementById('pm-msg');
+            el.innerText = msg; el.className = 'pm-msg ' + (ok ? 'ok' : 'err'); el.style.display = 'block';
+        }
+        function pmClearMsg() { const el = document.getElementById('pm-msg'); if (el) el.style.display = 'none'; }
+
+        function openProfile() {
+            const u = _currentUser();
+            if (!u) return;
+            const internal = _isInternalEmail(u.email);
+            const uname = (u.email || '').replace(USERNAME_DOMAIN, '');
+            const display = u.displayName || uname || 'Tài khoản';
+            document.getElementById('pm-name').innerText = display;
+            document.getElementById('pm-email').innerText = internal ? ('Tên đăng nhập: ' + uname) : (u.email || '—');
+            document.getElementById('pm-avatar').innerText = (display.trim()[0] || 'A');
+            document.getElementById('pm-displayname').value = u.displayName || '';
+            // Trạng thái xác minh (chỉ với email thật)
+            const vEl = document.getElementById('pm-verify');
+            const vRow = document.getElementById('pm-verify-row');
+            if (internal) {
+                vEl.style.display = 'none'; vRow.style.display = 'none';
+            } else if (u.emailVerified) {
+                vEl.style.display = 'inline-block'; vEl.className = 'pm-verify ok'; vEl.innerText = '✓ Email đã xác minh';
+                vRow.style.display = 'none';
+            } else {
+                vEl.style.display = 'inline-block'; vEl.className = 'pm-verify no'; vEl.innerText = '⚠ Chưa xác minh';
+                vRow.style.display = 'flex';
+            }
+            // Tài khoản Google không đổi mật khẩu kiểu này
+            const isGoogle = u.providerData && u.providerData.some(p => p.providerId === 'google.com');
+            document.getElementById('pm-pw-section').style.display = isGoogle ? 'none' : 'block';
+            pmClearMsg();
+            document.getElementById('profile-modal').style.display = 'flex';
+        }
+        function closeProfile() {
+            document.getElementById('profile-modal').style.display = 'none';
+            ['pm-pw-old','pm-pw-new'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        }
+
+        async function profileSaveName() {
+            const u = _currentUser(); if (!u) return;
+            const dn = document.getElementById('pm-displayname').value.trim();
+            if (!dn) return pmMsg('Vui lòng nhập tên hiển thị.', false);
+            try {
+                await u.updateProfile({ displayName: dn });
+                document.getElementById('acct-name').innerText = dn;
+                document.getElementById('pm-name').innerText = dn;
+                document.getElementById('pm-avatar').innerText = dn[0];
+                pmMsg('Đã cập nhật tên hiển thị.', true);
+            } catch (e) { pmMsg(_agMapError(e), false); }
+        }
+
+        async function profileResendVerify() {
+            const u = _currentUser(); if (!u) return;
+            try {
+                await u.sendEmailVerification();
+                pmMsg('Đã gửi lại email xác minh tới ' + u.email + '.', true);
+            } catch (e) { pmMsg(_agMapError(e), false); }
+        }
+
+        async function profileChangePw() {
+            const u = _currentUser(); if (!u) return;
+            const oldPw = document.getElementById('pm-pw-old').value;
+            const newPw = document.getElementById('pm-pw-new').value;
+            if (!oldPw) return pmMsg('Nhập mật khẩu hiện tại.', false);
+            if (!newPw || newPw.length < 6) return pmMsg('Mật khẩu mới phải từ 6 ký tự.', false);
+            try {
+                // Xác thực lại trước khi đổi (Firebase yêu cầu)
+                const cred = firebase.auth.EmailAuthProvider.credential(u.email, oldPw);
+                await u.reauthenticateWithCredential(cred);
+                await u.updatePassword(newPw);
+                document.getElementById('pm-pw-old').value = '';
+                document.getElementById('pm-pw-new').value = '';
+                pmMsg('Đã đổi mật khẩu thành công.', true);
+            } catch (e) { pmMsg(_agMapError(e), false); }
+        }
+
+        function profileDeleteAccount() {
+            const u = _currentUser(); if (!u) return;
+            const internal = _isInternalEmail(u.email);
+            const isGoogle = u.providerData && u.providerData.some(p => p.providerId === 'google.com');
+            showConfirmModal(
+                'Xóa tài khoản vĩnh viễn?',
+                'Toàn bộ dữ liệu lô hàng của tài khoản này sẽ bị xóa và KHÔNG THỂ khôi phục. Bạn chắc chắn?',
+                async () => {
+                    try {
+                        // Xóa dữ liệu Firestore của phòng riêng
+                        try {
+                            initFirebase();
+                            const room = 'u_' + u.uid;
+                            const col = fbDb.collection('carotplan_rooms').doc(room).collection('records');
+                            const snap = await col.get();
+                            const batch = fbDb.batch();
+                            snap.forEach(d => batch.delete(d.ref));
+                            await batch.commit();
+                        } catch(e){}
+                        // Xóa tài khoản (có thể cần đăng nhập lại gần đây)
+                        if (!isGoogle && !internal) {
+                            // email thật: thử reauth bằng prompt mật khẩu nếu Firebase báo cần
+                            try { await u.delete(); }
+                            catch (e) {
+                                if (e && e.code === 'auth/requires-recent-login') {
+                                    const pw = prompt('Vui lòng nhập lại mật khẩu để xác nhận xóa tài khoản:');
+                                    if (!pw) return;
+                                    const cred = firebase.auth.EmailAuthProvider.credential(u.email, pw);
+                                    await u.reauthenticateWithCredential(cred);
+                                    await u.delete();
+                                } else { throw e; }
+                            }
+                        } else if (isGoogle) {
+                            try { await u.delete(); }
+                            catch (e) {
+                                if (e && e.code === 'auth/requires-recent-login') {
+                                    const provider = new firebase.auth.GoogleAuthProvider();
+                                    await u.reauthenticateWithPopup(provider);
+                                    await u.delete();
+                                } else { throw e; }
+                            }
+                        } else {
+                            // tài khoản username nội bộ — cần mật khẩu
+                            const pw = prompt('Nhập mật khẩu để xác nhận xóa tài khoản:');
+                            if (!pw) return;
+                            const cred = firebase.auth.EmailAuthProvider.credential(u.email, pw);
+                            await u.reauthenticateWithCredential(cred);
+                            await u.delete();
+                        }
+                        localStorage.removeItem('carot_cloud_room');
+                        localStorage.removeItem('ep_migrated_to_account');
+                        closeProfile();
+                        document.body.classList.remove('authed');
+                        showToast('Đã xóa tài khoản.', 'success');
+                    } catch (e) {
+                        pmMsg(_agMapError(e), false);
+                    }
+                },
+                null,
+                { twoStep: true }
+            );
+        }
+
 
         function roomDocName(roomName, user = activeUser) {
             // Tách công ty bằng hậu tố trên TÊN PHÒNG (doc), KHÔNG đổi tên subcollection.
@@ -9432,6 +10233,7 @@ ${buildAIContext()}
                 document.documentElement.setAttribute('data-theme', 'dark');
                 document.getElementById('dark-mode-toggle').checked = true;
             }
+            try { agSyncThemeIcon(); } catch(e){}
 
             // Restore active user (Thuan Loi Rubber / Indochina Saigon)
             const savedUser = localStorage.getItem('ep_active_user') || 'tlr';
@@ -9455,15 +10257,11 @@ ${buildAIContext()}
             });
 
             loadDemoData();
-            
-            // Tự động khôi phục mã Cloud Room của anh nếu có lưu sẵn trên trình duyệt này
-            const savedRoom = localStorage.getItem('carot_cloud_room');
-            if (savedRoom) {
-                document.getElementById('cloud-room-input').value = savedRoom;
-                await connectToCloud(savedRoom);
-            } else {
-                renderData();
-            }
+
+            // (v3.0) Cổng đăng nhập: phòng Cloud do TÀI KHOẢN quyết định (room = uid).
+            // Render dữ liệu local trước để app không trống khi chờ xác thực.
+            renderData();
+            startAuthGate();
 
             initResizableColumns();
             
