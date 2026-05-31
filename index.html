@@ -4324,7 +4324,6 @@
 
             <div class="pm-actions">
                 <button type="button" class="pm-btn pm-btn-ghost" onclick="agLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất</button>
-                <button type="button" class="pm-btn pm-btn-danger" onclick="profileDeleteAccount()"><i class="fa-solid fa-trash-can"></i> Xóa tài khoản</button>
             </div>
         </div>
     </div>
@@ -4358,12 +4357,12 @@
                 </div>
 
                 <!-- Cloud Room + status -->
-                <div class="chip-pill lift-card" id="cloud-status-badge">
+                <div class="chip-pill lift-card" id="cloud-status-badge" onclick="toggleCloudConnection()" style="cursor:pointer" title="Bấm để Ngắt / Kết nối lại Cloud">
                     <span id="cloud-status-dot" class="chip-dot"></span>
                     <span id="cloud-status-text" class="chip-text">Offline</span>
-                    <input type="text" id="cloud-room-input" onchange="changeCloudRoom()" placeholder="Mã Cloud..." class="chip-input">
+                    <input type="text" id="cloud-room-input" onchange="changeCloudRoom()" placeholder="Mã Cloud..." class="chip-input" style="display:none">
                     <!-- MỤC 3 · Icon kết nối (chỉ hiện khi ONLINE) — bấm để NGẮT kết nối -->
-                    <button type="button" id="cloud-link-btn" onclick="disconnectCloud()" class="cloud-link-btn hidden" title="Đang kết nối Cloud — bấm để ngắt kết nối">
+                    <button type="button" id="cloud-link-btn" onclick="event.stopPropagation();toggleCloudConnection()" class="cloud-link-btn hidden" title="Đang kết nối Cloud — bấm để ngắt kết nối">
                         <i class="fa-solid fa-cloud cloud-link-cloud"></i>
                         <i class="fa-solid fa-link cloud-link-link"></i>
                     </button>
@@ -5628,10 +5627,11 @@
             resetMobilePaging();
             renderData();
 
-            // Nếu đang bật Cloud → nối lại tới collection riêng của công ty này
-            const savedRoom = localStorage.getItem('carot_cloud_room');
-            if (savedRoom) {
-                connectToCloud(savedRoom);
+            // Nối tới kho RIÊNG của (tài khoản + công ty này): u_<uid>_<company>
+            const room = accountRoomFor(userKey);
+            if (room) {
+                localStorage.setItem('carot_cloud_room', room);
+                connectToCloud(room);
             }
 
             showToast(`👤 Không gian dữ liệu: ${USER_PROFILES[userKey].label}`);
@@ -6017,14 +6017,24 @@
         }
 
         async function agLogout() {
-            try { if (fbAuth) await fbAuth.signOut(); } catch(e){}
-            // ngắt cloud + xoá phòng theo phiên
+            // Đóng modal hồ sơ nếu đang mở
+            try { closeProfile(); } catch(e){}
+            // Ngắt cloud listener + xoá phòng theo phiên
+            try { if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; } } catch(e){}
             try { if (typeof disconnectCloud === 'function') disconnectCloud(); } catch(e){}
             localStorage.removeItem('carot_cloud_room');
+            // Reset trạng thái phiên đăng nhập
+            _enteredUid = null;
+            _currentAuthUid = null;
+            // Xoá dữ liệu đang hiển thị để không lộ sang tài khoản khác
+            try { dbData = []; renderData(); } catch(e){}
+            // Đăng xuất Firebase (onAuthStateChanged sẽ gỡ body.authed)
+            try { if (fbAuth) await fbAuth.signOut(); } catch(e){}
             document.body.classList.remove('authed');
             agBackToLanding();
-            // reset form
+            // reset form đăng nhập
             const p = document.getElementById('ag-password'); if (p) p.value = '';
+            const em = document.getElementById('ag-email'); if (em) em.value = '';
         }
 
         // Cổng xác thực: theo dõi trạng thái đăng nhập
@@ -6041,14 +6051,22 @@
             });
         }
 
-        // Vào app cho 1 tài khoản: phòng Cloud = uid (mỗi tài khoản dữ liệu RIÊNG)
+        // Vào app cho 1 tài khoản: phòng Cloud = u_<uid>_<company> (mỗi tài khoản + mỗi công ty 1 kho RIÊNG)
         let _enteredUid = null;
+        let _currentAuthUid = null;
+        function accountRoomFor(company) {
+            const uid = _currentAuthUid || (fbAuth && fbAuth.currentUser && fbAuth.currentUser.uid);
+            if (!uid) return null;
+            const c = company || activeUser || 'tlr';
+            return 'u_' + uid + '_' + c;
+        }
         async function enterAppForUser(user) {
+            _currentAuthUid = user.uid;
             if (_enteredUid === user.uid) return;   // đã vào rồi
             _enteredUid = user.uid;
-            const room = 'u_' + user.uid;
+            const room = accountRoomFor(activeUser);
 
-            // Di trú 1 lần: dữ liệu local hiện có → gắn vào TÀI KHOẢN ĐẦU TIÊN đăng nhập
+            // Di trú 1 lần: dữ liệu local hiện có → gắn vào kho công ty ĐANG CHỌN của TÀI KHOẢN ĐẦU TIÊN
             try {
                 if (!localStorage.getItem('ep_migrated_to_account') && Array.isArray(dbData) && dbData.length > 0) {
                     initFirebase();
@@ -6069,7 +6087,7 @@
                 if (nameEl) nameEl.innerText = user.displayName || (user.email || '').replace(USERNAME_DOMAIN, '') || 'Tài khoản';
             } catch(e){}
 
-            // Kết nối phòng riêng của tài khoản
+            // Kết nối phòng riêng của (tài khoản + công ty đang chọn)
             localStorage.setItem('carot_cloud_room', room);
             if (typeof connectToCloud === 'function') connectToCloud(room);
 
@@ -6335,12 +6353,25 @@
             const lb = document.getElementById('cloud-link-btn');
             if (lb) lb.classList.add('hidden');
             const inp = document.getElementById('cloud-room-input');
-            inp.classList.remove('hidden');
-            inp.value = "";
+            if (inp) { inp.value = ""; }   // ô nhập mã thủ công đã ẩn (phòng do tài khoản quyết định)
             document.getElementById('cloud-status-badge').className = "chip-pill lift-card";
             dbData = loadLocalData();
             renderData();
             showToast("Đã ngắt liên kết Cloud, quay về Offline!");
+        }
+
+        // (v3.0) Bấm badge Cloud → Ngắt nếu đang nối; Nối lại kho của tài khoản nếu đang Offline
+        function toggleCloudConnection() {
+            const connected = !!(localStorage.getItem('carot_cloud_room') && unsubscribeFirestore);
+            if (connected) {
+                disconnectCloud();
+            } else {
+                const room = (typeof accountRoomFor === 'function') ? accountRoomFor(activeUser) : null;
+                if (!room) { showToast('Bạn cần đăng nhập để dùng Cloud.', 'error'); return; }
+                localStorage.setItem('carot_cloud_room', room);
+                connectToCloud(room);
+                showToast('Đã kết nối lại Cloud Realtime.', 'success');
+            }
         }
 
 // Thay đổi tên Cloud Room (Mã phòng)
