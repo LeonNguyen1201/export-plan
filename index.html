@@ -5007,6 +5007,7 @@
                                 <label class="block font-bold text-slate-700 uppercase text-[10px] tracking-wider mb-1">Quy Cách Đóng Gói</label>
                                 <select id="packaging" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold bg-white text-slate-700">
                                     <option value="Flexibag">Flexibag</option>
+                                    <option value="IBC">IBC</option>
                                     <option value="Bales">Bales</option>
                                     <option value="SW Pallet Gỗ">SW Pallet Gỗ</option>
                                     <option value="SW Pallet Nhựa">SW Pallet Nhựa</option>
@@ -9813,6 +9814,7 @@ ${buildAIContext()}
             if (t.startsWith('SW ') || t === 'SW') return 'SW Pallet Gỗ';
             if (t.startsWith('PP ') || t === 'PP') return 'SW Pallet Nhựa';
             if (t.includes('BALE')) return 'Bales';
+            if (t.includes('IBC')) return 'IBC';
             if (t.includes('DRUM')) return 'Drum';
             if (t.includes('FLEX') || t.includes('TANK')) return 'Flexibag';
             return 'Bales';
