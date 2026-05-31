@@ -2970,6 +2970,7 @@
         .pm-verify { display: inline-block; margin-top: 5px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; }
         .pm-verify.ok { background: rgba(16,185,129,0.16); color: #059669; }
         .pm-verify.no { background: rgba(245,158,11,0.16); color: #d97706; }
+        .pm-verify.admin { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 2px 8px rgba(217,119,6,0.35); letter-spacing: 0.3px; }
         .pm-verify-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #92400e; background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.35); border-radius: 12px; padding: 9px 12px; margin-bottom: 16px; }
         [data-theme="dark"] .pm-verify-row { color: #fcd34d; }
         .pm-verify-row button { margin-left: auto; background: #d97706; color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -4710,7 +4711,35 @@
             </div>
         </div>
 
-        <!-- KPI Dashboard -->
+        <!-- ════════ VESSEL SCHEDULE LOOKUP MODAL · TRA CỨU LỊCH TÀU (v3.1) ════════ -->
+        <div id="vessel-schedule-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col" style="background:var(--bg-card);border:1px solid var(--border);max-height:88vh;">
+                <!-- Header -->
+                <div class="text-white px-5 py-3.5 flex justify-between items-center" style="background:linear-gradient(90deg,#0891b2,#0e7490)">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        Tra Cứu Lịch Tàu
+                    </h3>
+                    <button onclick="closeVesselSchedule()" class="text-white/80 hover:text-white transition-colors text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="p-5 text-xs flex flex-col gap-3 overflow-hidden" style="color:var(--text-primary)">
+                    <p class="leading-relaxed" style="color:var(--text-muted)">
+                        Xem nhanh <b>ETD &amp; Cut-off</b> của từng Tàu/Chuyến, kèm danh sách lô hàng đi tàu đó và <b>cảng đích</b> của từng lô.
+                    </p>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="vs-search" oninput="vsRenderList()" placeholder="Tìm theo tên Tàu / Chuyến hoặc cảng..." autocomplete="off"
+                            class="w-full pl-9 pr-3 py-2 rounded-lg text-xs font-semibold focus:outline-none"
+                            style="background:var(--input-bg);border:1px solid var(--input-border);color:var(--text-primary)">
+                    </div>
+                    <div id="vs-list" class="overflow-y-auto pr-1 flex flex-col gap-3" style="max-height:60vh;"></div>
+                </div>
+                <div class="px-5 py-3 flex justify-end border-t" style="border-color:var(--border);background:var(--bg-card-alt)">
+                    <button onclick="closeVesselSchedule()" class="px-4 py-2 rounded-lg text-xs font-semibold transition-all" style="background:var(--bg-hover);color:var(--text-secondary)">Đóng</button>
+                </div>
+            </div>
+        </div>
+
         <div id="sec-overview" data-tab="overview" class="tab-pane grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
             <!-- PO · hover → trung bình đơn hàng/ngày, /tháng -->
             <div class="card theme-transition p-5 flex items-center gap-4 h-28 kpi-flip">
@@ -5192,6 +5221,11 @@
                 <button type="button" onclick="closeAllQuickPopovers(); openVesselReschedule();" class="ql-pop-item w-full text-left">
                     <span class="ql-pop-ic pop-sky"><i class="fa-solid fa-calendar-days"></i></span>
                     <span>Thay Đổi Lịch Tàu<span class="ql-pop-sub">Cập nhật ETD / Cut-off</span></span>
+                </button>
+                <div class="ql-pop-divider"></div>
+                <button type="button" onclick="closeAllQuickPopovers(); openVesselSchedule();" class="ql-pop-item w-full text-left">
+                    <span class="ql-pop-ic pop-emerald"><i class="fa-solid fa-clipboard-list"></i></span>
+                    <span>Tra Cứu Lịch Tàu<span class="ql-pop-sub">Xem ETD / Cut-off &amp; lô hàng theo tàu</span></span>
                 </button>
             </div>
 
@@ -5862,6 +5896,14 @@
 
         // ═══════════════ AUTH GATE (v3.0) ═══════════════
         const USERNAME_DOMAIN = '@user.exportplan.app';   // username → email nội bộ (dùng email/password auth)
+
+        // (v3.1) TÀI KHOẢN QUẢN TRỊ — hiện huy hiệu "Admin" thay cho trạng thái xác minh
+        const ADMIN_EMAILS = ['veyron1201@gmail.com'];
+        function isAdminUser(u) {
+            const email = ((u && u.email) || '').trim().toLowerCase();
+            return ADMIN_EMAILS.indexOf(email) !== -1;
+        }
+
         let _agMode = 'login';      // 'login' | 'signup'
         let _agMethod = 'email';    // 'email' | 'username'
         let _agBusy = false;
@@ -6012,7 +6054,13 @@
                     if (dn && cred.user) { try { await cred.user.updateProfile({ displayName: dn }); } catch(e){} }
                     // (v3.0) Xác minh email — chỉ với tài khoản EMAIL thật (username dùng domain nội bộ nên bỏ qua)
                     if (_agMethod === 'email' && cred.user) {
-                        try { await cred.user.sendEmailVerification(); } catch(e){}
+                        try {
+                            await cred.user.sendEmailVerification();
+                        } catch(e){
+                            // (v3.1) KHÔNG nuốt lỗi — ghi log + báo để biết vì sao không nhận được email
+                            console.error('sendEmailVerification lỗi:', e);
+                            try { showToast('⚠️ Không gửi được email xác minh: ' + (e.code || e.message), 'error'); } catch(_){}
+                        }
                     }
                     // onAuthStateChanged sẽ đưa vào app; cờ để hiện nhắc xác minh
                     _justSignedUp = (_agMethod === 'email');
@@ -6047,8 +6095,14 @@
             // Reset trạng thái phiên đăng nhập
             _enteredUid = null;
             _currentAuthUid = null;
-            // Xoá dữ liệu đang hiển thị để không lộ sang tài khoản khác
-            try { dbData = []; renderData(); } catch(e){}
+            // Xoá dữ liệu đang hiển thị + cache cục bộ để KHÔNG lộ sang tài khoản khác (v3.1)
+            try {
+                dbData = [];
+                Object.keys(localStorage).forEach(k => { if (k.indexOf('export_plan_data') === 0) localStorage.removeItem(k); });
+                renderData();
+            } catch(e){}
+            // Dừng đồng hồ tự đăng xuất
+            try { if (typeof _idleTimer !== 'undefined' && _idleTimer) { clearTimeout(_idleTimer); _idleTimer = null; } } catch(e){}
             // Đăng xuất Firebase (onAuthStateChanged sẽ gỡ body.authed)
             try { if (fbAuth) await fbAuth.signOut(); } catch(e){}
             document.body.classList.remove('authed');
@@ -6056,6 +6110,28 @@
             // reset form đăng nhập
             const p = document.getElementById('ag-password'); if (p) p.value = '';
             const em = document.getElementById('ag-email'); if (em) em.value = '';
+        }
+
+        // ═══════════ (v3.1) TỰ ĐỘNG ĐĂNG XUẤT KHI KHÔNG HOẠT ĐỘNG ═══════════
+        const IDLE_LIMIT_MS = 60 * 60 * 1000;   // 60 phút
+        let _idleTimer = null;
+        function _resetIdleTimer() {
+            if (!document.body.classList.contains('authed')) return;   // chỉ áp dụng khi đã đăng nhập
+            if (_idleTimer) clearTimeout(_idleTimer);
+            _idleTimer = setTimeout(_onIdleTimeout, IDLE_LIMIT_MS);
+        }
+        function _onIdleTimeout() {
+            if (!document.body.classList.contains('authed')) return;
+            try { showToast('🔒 Đã tự động đăng xuất do không hoạt động 60 phút.', 'error'); } catch(e){}
+            try { agLogout(); } catch(e){}
+        }
+        function _startIdleWatch() {
+            ['mousemove','mousedown','keydown','touchstart','scroll','click','wheel'].forEach(ev => {
+                window.addEventListener(ev, _resetIdleTimer, { passive: true });
+            });
+            // Khi quay lại tab: kiểm tra lại đồng hồ
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) _resetIdleTimer(); });
+            _resetIdleTimer();
         }
 
         // Cổng xác thực: theo dõi trạng thái đăng nhập
@@ -6066,6 +6142,7 @@
                     document.body.classList.add('authed');
                     agBusy(false);
                     await enterAppForUser(user);
+                    try { _resetIdleTimer(); } catch(e){}   // (v3.1) bắt đầu đếm idle sau khi vào app
                 } else {
                     document.body.classList.remove('authed');
                 }
@@ -6087,17 +6164,22 @@
             _enteredUid = user.uid;
             const room = accountRoomFor(activeUser);
 
-            // Di trú 1 lần: dữ liệu local hiện có → gắn vào kho công ty ĐANG CHỌN của TÀI KHOẢN ĐẦU TIÊN
+            // Di trú 1 lần: CHỈ dữ liệu TLR gốc (key cũ 'export_plan_data') của CHỦ SỞ HỮU ĐẦU TIÊN.
+            // (v3.1) KHÔNG bao giờ di trú dữ liệu công ty khác (icsg) để tránh lộ chéo giữa các tài khoản.
             try {
-                if (!localStorage.getItem('ep_migrated_to_account') && Array.isArray(dbData) && dbData.length > 0) {
-                    initFirebase();
-                    const colRef = fbDb.collection('carotplan_rooms').doc(room).collection('records');
-                    const batch = fbDb.batch();
-                    dbData.forEach(rec => {
-                        if (!rec || !rec.id) return;
-                        batch.set(colRef.doc(String(rec.id)), rec, { merge: true });
-                    });
-                    await batch.commit();
+                if (!localStorage.getItem('ep_migrated_to_account') && activeUser === 'tlr') {
+                    let legacy = [];
+                    try { legacy = JSON.parse(localStorage.getItem('export_plan_data')) || []; } catch(_){ legacy = []; }
+                    if (Array.isArray(legacy) && legacy.length > 0) {
+                        initFirebase();
+                        const colRef = fbDb.collection('carotplan_rooms').doc(room).collection('records');
+                        const batch = fbDb.batch();
+                        legacy.forEach(rec => {
+                            if (!rec || !rec.id) return;
+                            batch.set(colRef.doc(String(rec.id)), rec, { merge: true });
+                        });
+                        await batch.commit();
+                    }
                     localStorage.setItem('ep_migrated_to_account', '1');
                 }
             } catch (e) { /* migrate lỗi thì bỏ qua, vẫn vào app */ }
@@ -6110,6 +6192,8 @@
 
             // Kết nối phòng riêng của (tài khoản + công ty đang chọn)
             localStorage.setItem('carot_cloud_room', room);
+            // (v3.1) Dọn sạch dữ liệu hiển thị TRƯỚC khi nối phòng — tránh lộ cache tài khoản cũ
+            try { dbData = []; renderData(); } catch(e){}
             if (typeof connectToCloud === 'function') connectToCloud(room);
 
             // (v3.0) Nhắc xác minh email sau khi vừa đăng ký (tài khoản email thật, chưa verify)
@@ -6141,10 +6225,13 @@
             document.getElementById('pm-email').innerText = internal ? ('Tên đăng nhập: ' + uname) : (u.email || '—');
             document.getElementById('pm-avatar').innerText = (display.trim()[0] || 'A');
             document.getElementById('pm-displayname').value = u.displayName || '';
-            // Trạng thái xác minh (chỉ với email thật)
+            // Trạng thái xác minh (chỉ với email thật) — Admin hiện huy hiệu riêng (v3.1)
             const vEl = document.getElementById('pm-verify');
             const vRow = document.getElementById('pm-verify-row');
-            if (internal) {
+            if (isAdminUser(u)) {
+                vEl.style.display = 'inline-block'; vEl.className = 'pm-verify admin'; vEl.innerText = '★ Admin';
+                vRow.style.display = 'none';
+            } else if (internal) {
                 vEl.style.display = 'none'; vRow.style.display = 'none';
             } else if (u.emailVerified) {
                 vEl.style.display = 'inline-block'; vEl.className = 'pm-verify ok'; vEl.innerText = '✓ Email đã xác minh';
@@ -6318,14 +6405,11 @@
                     const cloudRecords = [];
                     snapshot.forEach(d => cloudRecords.push({ id: d.id, ...d.data() }));
 
-                    // Nếu phòng trống mà máy này có data → đẩy lên
-                    if (firstSnap && cloudRecords.length === 0 && dbData.length > 0) {
-                        firstSnap = false;
-                        const batch = fbDb.batch();
-                        dbData.forEach(item => batch.set(colRef.doc(item.id), item));
-                        batch.commit().catch(e => console.error("Batch:", e));
-                        return;
-                    }
+                    // (v3.1 · FIX RÒ RỈ DỮ LIỆU) KHÔNG còn tự đẩy dbData (cache cục bộ) lên
+                    // phòng cloud trống. Trước đây, khi đổi tài khoản trên cùng trình duyệt,
+                    // cache của tài khoản cũ bị đẩy vào phòng của tài khoản MỚI → lộ dữ liệu
+                    // (ví dụ tài khoản mới đọc được data Indochina Saigon). Cloud là nguồn
+                    // dữ liệu chuẩn: phòng trống thì hiển thị TRỐNG.
                     firstSnap = false;
 
                     cloudRecords.sort((a, b) => {
@@ -9643,6 +9727,88 @@ ${buildAIContext()}
             showToast(`✅ Đã đổi lịch ${updated} lô của tàu "${vesselName}"`);
         }
 
+        // ════════ (v3.1) TRA CỨU LỊCH TÀU — xem ETD/Cut-off & lô hàng theo từng tàu ════════
+        function openVesselSchedule() {
+            const s = document.getElementById('vs-search');
+            if (s) s.value = '';
+            vsRenderList();
+            document.getElementById('vessel-schedule-modal').classList.remove('hidden');
+            setTimeout(() => { try { document.getElementById('vs-search').focus(); } catch(e){} }, 50);
+        }
+        function closeVesselSchedule() {
+            document.getElementById('vessel-schedule-modal').classList.add('hidden');
+        }
+        // Gom theo Tàu/Chuyến: lấy ETD/Cut-off của tàu + danh sách lô (PO, cảng đích, đã vào sổ tàu?)
+        function _vsGetGroups() {
+            const map = {};
+            dbData.forEach(it => {
+                const v = (it.vesselVoy || '').trim();
+                if (!v) return;
+                if (!map[v]) map[v] = { name: v, etd: it.etd || '', cutOff: it.cutOff || '', lots: [] };
+                if (!map[v].etd && it.etd) map[v].etd = it.etd;
+                if (!map[v].cutOff && it.cutOff) map[v].cutOff = it.cutOff;
+                map[v].lots.push({
+                    poNo: it.poNo || '(chưa có PO)',
+                    podPort: (it.podPort || '').trim(),
+                    transitPort: (it.transitPort || '').trim(),
+                    type: it.type || '',
+                    qtyCont: it.qtyCont || '',
+                    entered: !!it.enteredVessel
+                });
+            });
+            // Sắp xếp tàu theo ETD gần nhất trước (tàu chưa có ETD xếp cuối)
+            return Object.values(map).sort((a, b) => {
+                const ea = a.etd || '9999-99-99', eb = b.etd || '9999-99-99';
+                return ea.localeCompare(eb);
+            });
+        }
+        function vsRenderList() {
+            const kw = (document.getElementById('vs-search').value || '').trim().toLowerCase();
+            const listEl = document.getElementById('vs-list');
+            let groups = _vsGetGroups();
+            if (kw) {
+                groups = groups.filter(g =>
+                    g.name.toLowerCase().includes(kw) ||
+                    g.lots.some(l => (l.podPort || '').toLowerCase().includes(kw) || (l.transitPort || '').toLowerCase().includes(kw) || (l.poNo || '').toLowerCase().includes(kw))
+                );
+            }
+            if (groups.length === 0) {
+                listEl.innerHTML = `<div class="px-3 py-6 text-center text-[12px]" style="color:var(--text-muted)">
+                    ${kw ? 'Không tìm thấy Tàu/Chuyến hoặc cảng khớp' : 'Chưa có lô hàng nào gắn Tàu/Chuyến'}</div>`;
+                return;
+            }
+            const esc = (s) => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+            listEl.innerHTML = groups.map(g => {
+                const lotRows = g.lots.map(l => {
+                    const pod = l.podPort || '—';
+                    const transit = l.transitPort ? ` · qua ${esc(l.transitPort)}` : '';
+                    const badge = l.entered
+                        ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(16,185,129,0.16);color:#059669">đã vào sổ</span>`
+                        : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(245,158,11,0.18);color:#d97706">chưa vào sổ</span>`;
+                    return `<div class="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg" style="background:var(--bg-card)">
+                        <div class="min-w-0">
+                            <div class="font-bold text-[11.5px] truncate" style="color:var(--text-primary)">${esc(l.poNo)}${l.type ? ` <span class="font-semibold" style="color:var(--text-muted)">· ${esc(l.type)}</span>` : ''}</div>
+                            <div class="text-[10px] truncate" style="color:var(--text-secondary)"><i class="fa-solid fa-location-dot mr-1" style="color:#0891b2"></i>Cảng đích: <b>${esc(pod)}</b>${transit}</div>
+                        </div>
+                        ${badge}
+                    </div>`;
+                }).join('');
+                return `<div class="rounded-xl p-3" style="background:var(--bg-card-alt);border:1px solid var(--border)">
+                    <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                        <div class="font-bold text-[13px] flex items-center gap-2" style="color:var(--text-primary)">
+                            <i class="fa-solid fa-ship" style="color:#0891b2"></i>${esc(g.name)}
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(8,145,178,0.14);color:#0891b2">${g.lots.length} lô</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10.5px]" style="color:var(--text-secondary)">
+                            <span><i class="fa-solid fa-anchor mr-1" style="color:#2563eb"></i>ETD: <b style="color:#2563eb">${g.etd ? formatDate(g.etd) : '—'}</b></span>
+                            <span><i class="fa-solid fa-hourglass-half mr-1" style="color:#ef4444"></i>Cut-off: <b style="color:#ef4444">${g.cutOff ? formatDateTime(g.cutOff) : '—'}</b></span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1.5">${lotRows}</div>
+                </div>`;
+            }).join('');
+        }
+
         // Template do hệ thống tự thiết kế: 3 cột CONT | SEAL | VGM + vài dòng mẫu
         function downloadContTemplate() {
             const rec = dbData.find(it => it.id === csImportTargetId);
@@ -10331,6 +10497,7 @@ ${buildAIContext()}
             // Render dữ liệu local trước để app không trống khi chờ xác thực.
             renderData();
             startAuthGate();
+            try { _startIdleWatch(); } catch(e){}   // (v3.1) tự đăng xuất sau 60 phút không hoạt động
 
             initResizableColumns();
             
