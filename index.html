@@ -1607,23 +1607,9 @@
         [data-theme="dark"] #gantt-rows-container .border-slate-200 { border-color: var(--border) !important; }
         [data-theme="dark"] .bg-slate-50\/50 { background: rgba(255,255,255,0.02) !important; }
 
-        /* (v3.1) Ô PO/Booking/Loại trong Gantt — xếp dọc, có thể đảo vị trí "Loại" theo hướng màn.
-           MẶC ĐỊNH (desktop + iPad NGANG): Loại (Latex HA) nằm DƯỚI cùng. */
-        .gantt-po-cell { display: flex !important; flex-direction: column !important; gap: 1px; }
-        .gantt-po-cell .gantt-po-no      { order: 1; }
-        .gantt-po-cell .gantt-po-booking { order: 2; }
-        .gantt-po-cell .gantt-po-type    { order: 3; margin-top: 3px; }   /* DƯỚI cùng khi nằm ngang */
-        .gantt-type-badge {
-            display: inline-block;
-            font-size: 9px; font-weight: 800; line-height: 1.3;
-            color: #4338ca; background: rgba(99,102,241,0.12);
-            border: 1px solid rgba(99,102,241,0.28);
-            border-radius: 6px; padding: 1px 7px;
-            white-space: nowrap;
-        }
-        [data-theme="dark"] .gantt-type-badge {
-            color: #c7d2fe; background: rgba(99,102,241,0.20); border-color: rgba(129,140,248,0.4);
-        }
+        /* (v3.1) Ô PO/Booking/Loại trong Gantt.
+           MẶC ĐỊNH (desktop + iPad NGANG): "(Latex HA)" xuống DÒNG DƯỚI Booking. */
+        .gantt-po-cell .gantt-po-type { color: inherit; }
 
         /* ══════════════════════════════════════════
            MỤC 2 · MOBILE & iPad-DỌC GANTT — Bỏ cuộn ngang, mỗi lô là 1 thẻ dọc:
@@ -1698,25 +1684,23 @@
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) { grid-area: timeline; }
 
             /* Con 1 — Thông tin PO / Booking / Loại : nguyên một dải đầu thẻ.
-               (v3.1) DỌC iPhone/iPad: PO trên cùng, rồi hàng [Booking · badge Loại] CÙNG MỘT HÀNG
-               (badge nằm bên phải Booking) — gọn, không đẩy thẻ cao thêm. */
+               (v3.1) DỌC iPhone/iPad: PO trên cùng, rồi "Booking: ... (Latex HA)" CÙNG MỘT HÀNG. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) {
                 display: grid !important;
-                grid-template-columns: 1fr auto !important;
+                grid-template-columns: auto auto !important;
                 grid-template-areas:
                     "po      po"
                     "booking type" !important;
-                column-gap: 8px !important;
+                column-gap: 5px !important;
                 row-gap: 2px !important;
-                align-items: center !important;
+                justify-content: start !important;
+                align-items: baseline !important;
             }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-no      { grid-area: po; }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-booking { grid-area: booking; }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-type    {
                 grid-area: type;
-                order: 0 !important;
                 margin: 0 !important;
-                justify-self: end !important;
             }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-no {
                 font-size: 13.5px !important;
@@ -1727,11 +1711,12 @@
                 text-overflow: clip !important;
                 line-height: 1.25;
             }
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-booking {
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-booking,
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-type {
                 font-size: 10.5px !important;
                 color: var(--text-muted) !important;
                 margin-top: 2px;
-                white-space: normal !important;
+                white-space: nowrap !important;
                 overflow: visible !important;
                 text-overflow: clip !important;
             }
@@ -7216,7 +7201,7 @@
                     <div class="col-span-2 border-r border-slate-200 pr-2 gantt-po-cell">
                         <div class="gantt-po-no font-bold text-slate-800 truncate" title="${item.poNo}">${item.poNo}</div>
                         <div class="gantt-po-booking text-[9px] text-slate-400 truncate">Booking: ${item.bookingNo}</div>
-                        <div class="gantt-po-type"><span class="gantt-type-badge">${item.type || '—'}</span></div>
+                        <div class="gantt-po-type text-[9px] text-slate-400 truncate">(${item.type || '—'})</div>
                     </div>
                     <div class="col-span-1 text-center border-r border-slate-200 text-slate-600 font-semibold">${formatDate(item.dateStuffing)}</div>
                     <div class="col-span-1 text-center border-r border-slate-200 text-blue-700 font-bold">${formatDate(item.etd)}</div>
