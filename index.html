@@ -2756,6 +2756,62 @@
             .cutoff-flash { animation: none !important; }
         }
 
+        /* ── (v3.1) RỚT TÀU: quá giờ Cut-off mà CHƯA vào sổ tàu → cả dòng NHẤP NHÁY ĐỎ ── */
+        .missed-flash { animation: missed-text-kf 0.8s ease-in-out infinite; will-change: opacity; }
+        @keyframes missed-text-kf { 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+        tbody tr.missed-ship-row { border-left: 4px solid #dc2626 !important; }
+        tbody tr.missed-ship-row > td:not(.freeze-col-1):not(.freeze-col-2) {
+            animation: missed-row-kf 1s ease-in-out infinite;
+            will-change: background-color;
+        }
+        @keyframes missed-row-kf {
+            0%,100% { background-color: rgba(220,38,38,0.14); }
+            50%     { background-color: rgba(220,38,38,0.42); }
+        }
+        [data-theme="dark"] tbody tr.missed-ship-row > td:not(.freeze-col-1):not(.freeze-col-2) {
+            animation: missed-row-kf-dark 1s ease-in-out infinite;
+        }
+        @keyframes missed-row-kf-dark {
+            0%,100% { background-color: rgba(220,38,38,0.28); }
+            50%     { background-color: rgba(220,38,38,0.58); }
+        }
+        /* Freeze cols (cố định) — đỏ đậm tĩnh để cả hàng đồng màu, nổi bật rõ */
+        tbody tr.missed-ship-row .freeze-col-1,
+        tbody tr.missed-ship-row .freeze-col-2,
+        tbody tr.missed-ship-row:hover .freeze-col-1,
+        tbody tr.missed-ship-row:hover .freeze-col-2 {
+            background-color: #fee2e2 !important;
+            box-shadow: inset -1px 0 0 rgba(220,38,38,0.5) !important;
+        }
+        [data-theme="dark"] tbody tr.missed-ship-row .freeze-col-1,
+        [data-theme="dark"] tbody tr.missed-ship-row .freeze-col-2,
+        [data-theme="dark"] tbody tr.missed-ship-row:hover .freeze-col-1,
+        [data-theme="dark"] tbody tr.missed-ship-row:hover .freeze-col-2 {
+            background-color: #3b0d12 !important;
+            box-shadow: inset -1px 0 0 rgba(220,38,38,0.45) !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .missed-flash { animation: none !important; }
+            tbody tr.missed-ship-row > td { animation: none !important; background-color: rgba(220,38,38,0.22) !important; }
+        }
+        /* Banner cảnh báo RỚT TÀU trên màn hình chính */
+        #missed-ship-banner {
+            display: none; margin: 0 0 16px 0; border-radius: 14px; padding: 14px 16px;
+            background: linear-gradient(90deg, rgba(220,38,38,0.14), rgba(220,38,38,0.06));
+            border: 1.5px solid rgba(220,38,38,0.55);
+            animation: missed-banner-kf 1.3s ease-in-out infinite;
+        }
+        #missed-ship-banner.show { display: block; }
+        @keyframes missed-banner-kf {
+            0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.40); }
+            50%     { box-shadow: 0 0 0 7px rgba(220,38,38,0); }
+        }
+        #missed-ship-banner .msb-title { color:#dc2626; font-weight:800; font-size:14px; display:flex; align-items:center; gap:8px; }
+        #missed-ship-banner .msb-list { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+        #missed-ship-banner .msb-chip { font-size:11px; font-weight:700; color:#b91c1c; background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.4); border-radius:9999px; padding:3px 10px; }
+        [data-theme="dark"] #missed-ship-banner .msb-chip { color:#fca5a5; }
+        #missed-ship-banner .msb-close { float:right; background:none; border:none; color:#dc2626; font-size:16px; cursor:pointer; line-height:1; }
+
         /* ═══════════════════════════════════════════════════════════
            AUTH GATE · LANDING + ĐĂNG NHẬP / ĐĂNG KÝ (v3.0)
         ═══════════════════════════════════════════════════════════ */
@@ -4429,6 +4485,12 @@
     </button>
 
     <main class="max-w-[1820px] mx-auto px-6 py-6 flex-1 w-full">
+        <!-- (v3.1) BANNER CẢNH BÁO RỚT TÀU — lô quá cut-off mà chưa vào sổ tàu -->
+        <div id="missed-ship-banner" role="alert">
+            <button type="button" class="msb-close" onclick="dismissMissedBanner()" title="Đóng cảnh báo">&times;</button>
+            <div class="msb-title"><i class="fa-solid fa-triangle-exclamation"></i> <span id="msb-heading">Cảnh báo rớt tàu</span></div>
+            <div class="msb-list" id="msb-list"></div>
+        </div>
         <!-- Khung báo Toast -->
         <div id="toast" class="hidden fixed bottom-5 right-5 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-0">
             <i class="fa-solid fa-circle-check"></i>
@@ -6141,6 +6203,8 @@
                 if (user) {
                     document.body.classList.add('authed');
                     agBusy(false);
+                    _loginWarnPending = true;        // (v3.1) sẽ hiện cảnh báo rớt tàu sau khi data tải xong
+                    _missedBannerDismissed = false;  // mỗi phiên đăng nhập hiện lại banner
                     await enterAppForUser(user);
                     try { _resetIdleTimer(); } catch(e){}   // (v3.1) bắt đầu đếm idle sau khi vào app
                 } else {
@@ -6534,18 +6598,22 @@
             const index = dbData.findIndex(item => item.id === id);
             if (index === -1) return;
             dbData[index].enteredVessel = isChecked;
+            // (v3.1) Cập nhật GIAO DIỆN NGAY (optimistic) — Gantt/KPI phản ánh tức thì,
+            // không chờ snapshot Cloud. Đây là lý do trước đây lô đã vào sổ vẫn hiện trên Gantt.
+            saveLocalData();
+            renderData();
             const roomVal = localStorage.getItem('carot_cloud_room');
             if (roomVal) {
                 try {
-                    await roomColRef(roomVal).doc(id).update({ enteredVessel: isChecked });
+                    // Dùng set(merge:true) thay cho update() → KHÔNG văng lỗi nếu doc chưa tồn tại
+                    // (lô từ dữ liệu mẫu / chưa đồng bộ). Ghi cả bản ghi để doc luôn đầy đủ.
+                    await roomColRef(roomVal).doc(String(id)).set(dbData[index], { merge: true });
                     showToast(isChecked ? "☁️ Đã xác nhận Vào Sổ Tàu" : "☁️ Đã hủy xác nhận Vào Sổ Tàu");
                 } catch (e) {
                     console.error(e);
                     showToast("❌ Lỗi đồng bộ Cloud: " + (e.message || e), 'error');
                 }
             } else {
-                saveLocalData();
-                renderData();
                 showToast(isChecked ? "✅ Đã xác nhận Vào Sổ Tàu" : "↩️ Đã hủy xác nhận Vào Sổ Tàu");
             }
         }
@@ -6613,18 +6681,22 @@
                 
                 // KIỂM TRA ĐIỀU KIỆN CHỚP ĐỎ CẢNH BÁO DƯỚI 48 TIẾNG (SỬA LỖI CHÍNH XÁC THEO ĐỒNG HỒ CHẠY THỰC TẾ)
                 let isCutoffWarning = false;
+                let isMissedShip = false;   // (v3.1) RỚT TÀU: quá giờ cut-off mà CHƯA vào sổ tàu
                 if (item.cutOff && !item.enteredVessel) {
                     const cutoffTime = new Date(item.cutOff);
                     const diffMs = cutoffTime.getTime() - systemCurrentTime.getTime();
                     const diffHours = diffMs / (1000 * 60 * 60);
-                    
-                    // Nếu thời gian Cut-off còn dưới 48 tiếng và chưa quá hạn
-                    if (diffHours >= 0 && diffHours <= 48) {
-                        isCutoffWarning = true;
+
+                    if (diffHours < 0) {
+                        isMissedShip = true;             // đã quá cut-off → rớt tàu
+                    } else if (diffHours <= 48) {
+                        isCutoffWarning = true;          // còn dưới 48h, sắp tới hạn
                     }
                 }
 
-                if (isCutoffWarning) {
+                if (isMissedShip) {
+                    rowClass += " missed-ship-row";
+                } else if (isCutoffWarning) {
                     rowClass += " cutoff-warning-row";
                 }
 
@@ -6711,10 +6783,11 @@
                     </td>
                     <td data-label="Cut-off" class="py-3 px-3 cell-detail">
                         <div class="cell-stack">
-                            <span class="${isCutoffWarning ? 'text-red-600 font-extrabold cutoff-flash' : 'text-slate-700 font-semibold'} text-[12px] block leading-snug">
+                            <span class="${isMissedShip ? 'text-red-700 font-extrabold missed-flash' : (isCutoffWarning ? 'text-red-600 font-extrabold cutoff-flash' : 'text-slate-700 font-semibold')} text-[12px] block leading-snug">
                                 ${item.cutOff ? `<i class="fa-regular fa-clock mr-1"></i>` + formatDateTime(item.cutOff) : '-'}
                             </span>
-                            ${isCutoffWarning ? '<span class="text-[10px] text-red-600 font-extrabold cutoff-flash block mt-0.5">⚠️ GẤP! CHƯA VÀO SỔ TÀU</span>' : ''}
+                            ${isMissedShip ? '<span class="text-[10px] text-red-700 font-extrabold missed-flash block mt-0.5">🚨 RỚT TÀU — QUÁ CUT-OFF CHƯA VÀO SỔ</span>'
+                              : (isCutoffWarning ? '<span class="text-[10px] text-red-600 font-extrabold cutoff-flash block mt-0.5">⚠️ GẤP! CHƯA VÀO SỔ TÀU</span>' : '')}
                         </div>
                     </td>
                     <td data-label="Tờ khai / Luồng" class="py-3 px-2 text-center cell-detail">
@@ -6829,6 +6902,7 @@
             const _renderCharts = () => {
                 try { updateCharts(kpiData); } catch (e) {}
                 try { renderGanttChart(kpiData); } catch (e) {}
+                try { updateMissedShipBanner(); } catch (e) {}   // (v3.1) cập nhật cảnh báo rớt tàu
                 try { restoreColWidths(); } catch(e) {}
             };
             if (window.requestIdleCallback) {
@@ -7061,6 +7135,70 @@
                 _ganttFrag.appendChild(rowDiv);
             });
             ganttContainer.appendChild(_ganttFrag);
+        }
+
+        // ═══════════ (v3.1) CẢNH BÁO RỚT TÀU (quá cut-off, chưa vào sổ tàu) ═══════════
+        let _missedBannerDismissed = false;   // người dùng đã đóng banner trong phiên này
+        let _loginWarnPending = false;        // cần hiện cảnh báo modal ngay sau khi đăng nhập
+
+        function _getMissedShipLots() {
+            const now = (typeof systemCurrentTime !== 'undefined' && systemCurrentTime) ? systemCurrentTime : new Date();
+            return dbData.filter(it => {
+                if (!it.cutOff || it.enteredVessel) return false;
+                const c = new Date(it.cutOff);
+                if (isNaN(c.getTime())) return false;
+                return c.getTime() < now.getTime();   // đã quá giờ cut-off
+            });
+        }
+
+        function dismissMissedBanner() {
+            _missedBannerDismissed = true;
+            const b = document.getElementById('missed-ship-banner');
+            if (b) b.classList.remove('show');
+        }
+
+        function updateMissedShipBanner() {
+            const banner = document.getElementById('missed-ship-banner');
+            if (!banner) return;
+            const missed = _getMissedShipLots();
+
+            // (v3.1) Cảnh báo dạng modal NGAY khi vừa đăng nhập (chỉ 1 lần, sau khi data đã tải)
+            if (_loginWarnPending && dbData.length > 0) {
+                _loginWarnPending = false;
+                if (missed.length > 0) setTimeout(_showLoginMissedWarning, 600);
+            }
+
+            if (missed.length === 0 || _missedBannerDismissed) {
+                banner.classList.remove('show');
+                if (missed.length === 0) _missedBannerDismissed = false;   // reset khi không còn lô rớt tàu
+                return;
+            }
+            const esc = (s) => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+            document.getElementById('msb-heading').innerText =
+                `RỚT TÀU: ${missed.length} lô đã quá giờ Cut-off mà CHƯA vào sổ tàu!`;
+            document.getElementById('msb-list').innerHTML = missed.map(it =>
+                `<span class="msb-chip" title="${esc(it.vesselVoy || 'Chưa có tàu')} · Cut-off ${esc(formatDateTime(it.cutOff))}">
+                    🚢 ${esc(it.poNo || '(chưa có PO)')}${it.vesselVoy ? ' · ' + esc(it.vesselVoy) : ''}</span>`
+            ).join('');
+            banner.classList.add('show');
+        }
+
+        // Cảnh báo dạng modal khi vừa đăng nhập (nếu có lô rớt tàu)
+        function _showLoginMissedWarning() {
+            const missed = _getMissedShipLots();
+            if (missed.length === 0) return;
+            const top = missed.slice(0, 8).map(it => `• ${it.poNo || '(chưa có PO)'}${it.vesselVoy ? ' — ' + it.vesselVoy : ''}`).join('\n');
+            const extra = missed.length > 8 ? `\n… và ${missed.length - 8} lô khác.` : '';
+            try {
+                showConfirmModal(
+                    `🚨 CẢNH BÁO RỚT TÀU — ${missed.length} lô`,
+                    `Các lô sau đã QUÁ GIỜ CUT-OFF mà chưa được vào sổ tàu (nguy cơ rớt tàu):\n\n${top}${extra}\n\nVui lòng kiểm tra và xử lý gấp.`,
+                    () => {},   // bấm "Xác Nhận" = đã hiểu, đóng
+                    null
+                );
+            } catch(e) {
+                try { showToast(`🚨 ${missed.length} lô rớt tàu — quá cut-off chưa vào sổ!`, 'error'); } catch(_){}
+            }
         }
 
         // Lưu dữ liệu nội bộ (dùng khi offline, không có Cloud)
