@@ -1637,6 +1637,7 @@
                 padding: 8px !important;
                 display: flex !important;
                 flex-direction: column !important;
+                align-items: stretch !important;   /* (v3.1) mọi hàng giãn full ngang → không lệch lô cuối */
                 gap: 10px !important;
             }
 
@@ -1654,6 +1655,13 @@
                 column-gap: 10px !important;
                 row-gap: 7px !important;
                 align-items: start !important;
+                /* (v3.1 · FIX LỆCH LÔ CUỐI) Ép MỌI hàng full chiều ngang container, không co theo nội dung.
+                   Trước đây flex-column khiến hàng có PO ngắn (thường là lô cuối) bị hẹp lại →
+                   ô timeline hẹp → thanh ngắn + vạch "hôm nay" lệch trái. width:100% xử lý dứt điểm. */
+                width: 100% !important;
+                flex: 0 0 auto !important;
+                align-self: stretch !important;
+                box-sizing: border-box !important;
                 padding: 10px 4px !important;
                 /* KHÔNG còn card frame — chỉ có 1 đường mảnh phân cách giữa các lô */
                 border: none !important;
@@ -1751,6 +1759,7 @@
 
             /* Con 4 — Timeline : full ngang một dải dưới ngày (iPhone layout mặc định) */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) {
+                grid-column: 1 / -1 !important;   /* (v3.1) span tường minh cả 2 cột → luôn full ngang */
                 display: block !important;
                 width: 100% !important;
                 padding: 4px 0 2px !important;
