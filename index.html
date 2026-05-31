@@ -2068,6 +2068,15 @@
             .bn-item span { font-size: 11px; }
             .bn-item i { font-size: 19px; }
         }
+        /* (v3.1 · FIX) iPad NGANG: CHỈ mang 2 nút FAB (AI + "Export Data Entry") sang giống iPad dọc.
+           KHÔNG mang pill 3 nút tab (Tổng Quan/Kế Hoạch/Tiện Ích) và KHÔNG bật tab-mode —
+           iPad ngang vẫn là trang cuộn dài như web. */
+        @media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+            #bottom-nav { display: flex; justify-content: space-between; }
+            #bottom-nav #bn-pill { display: none !important; }   /* ẩn 3 nút tab giữa */
+            body { padding-bottom: 96px; }
+            .bn-circle { width: 60px; height: 60px; font-size: 23px; }
+        }
 
         /* ══════════════════════════════════════════
            TAB MODE — mỗi mục bottom-nav = MỘT TRANG riêng (chỉ iPhone + iPad DỌC)
@@ -4979,6 +4988,9 @@
                                 <select id="type" class="w-full px-2 py-1.5 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs font-semibold bg-white text-slate-700">
                                     <option value="Latex HA">Latex HA</option>
                                     <option value="Latex LA">Latex LA</option>
+                                    <option value="Latex MA">Latex MA</option>
+                                    <option value="10CV60">10CV60</option>
+                                    <option value="10CV50">10CV50</option>
                                     <option value="CV50">CV50</option>
                                     <option value="CV60">CV60</option>
                                     <option value="SVR 3L">SVR 3L</option>
@@ -5159,6 +5171,9 @@
                             <option value="ALL">Tất cả LOẠI</option>
                             <option value="Latex HA">Latex HA</option>
                             <option value="Latex LA">Latex LA</option>
+                            <option value="Latex MA">Latex MA</option>
+                            <option value="10CV60">10CV60</option>
+                            <option value="10CV50">10CV50</option>
                             <option value="CV50">CV50</option>
                             <option value="CV60">CV60</option>
                             <option value="SVR 3L">SVR 3L</option>
@@ -9777,9 +9792,12 @@ ${buildAIContext()}
             const t = orig.toUpperCase().replace(/\s+/g, ' ');
             if (t === 'HA' || t.includes('LATEX HA')) return 'Latex HA';
             if (t === 'LA' || t.includes('LATEX LA')) return 'Latex LA';
+            if (t === 'MA' || t.includes('LATEX MA')) return 'Latex MA';
             if (t.includes('SVR 3L') || t.includes('3L')) return 'SVR 3L';
             if (t.includes('SVR 10') || t.includes('SVR10')) return 'SVR 10';
-            if (t.includes('10CV') || t.includes('CV 10')) return 'CV50';
+            // (v3.1) Loại mới 10CV60 / 10CV50 — phải kiểm TRƯỚC các rule CV60/CV50 chung
+            if (t.includes('10CV60') || t.includes('10 CV 60')) return '10CV60';
+            if (t.includes('10CV50') || t.includes('10 CV 50') || t.includes('10CV') || t.includes('CV 10')) return '10CV50';
             if (t.includes('CV60')) return 'CV60';
             if (t.includes('CV50')) return 'CV50';
             if (t.includes('MIX 10') || t.includes('MIX10')) return 'MIX 10';
