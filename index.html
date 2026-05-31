@@ -1609,7 +1609,7 @@
 
         /* (v3.1) Ô PO/Booking/Loại trong Gantt.
            MẶC ĐỊNH (desktop + iPad NGANG): "(Latex HA)" xuống DÒNG DƯỚI Booking. */
-        .gantt-po-cell .gantt-po-type { color: inherit; }
+        .gantt-po-line2 .gantt-po-type { display: block; margin-top: 1px; }
 
         /* ══════════════════════════════════════════
            MỤC 2 · MOBILE & iPad-DỌC GANTT — Bỏ cuộn ngang, mỗi lô là 1 thẻ dọc:
@@ -1684,24 +1684,8 @@
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) { grid-area: timeline; }
 
             /* Con 1 — Thông tin PO / Booking / Loại : nguyên một dải đầu thẻ.
-               (v3.1) DỌC iPhone/iPad: PO trên cùng, rồi "Booking: ... (Latex HA)" CÙNG MỘT HÀNG. */
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) {
-                display: grid !important;
-                grid-template-columns: auto auto !important;
-                grid-template-areas:
-                    "po      po"
-                    "booking type" !important;
-                column-gap: 5px !important;
-                row-gap: 2px !important;
-                justify-content: start !important;
-                align-items: baseline !important;
-            }
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-no      { grid-area: po; }
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-booking { grid-area: booking; }
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-type    {
-                grid-area: type;
-                margin: 0 !important;
-            }
+               (v3.1) DỌC iPhone/iPad: "(Latex HA)" nằm CÙNG HÀNG, ngay sau Booking.
+               KHÔNG đổi cấu trúc grid của ô (tránh phá grid cha → lệch ETD/timeline). */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-no {
                 font-size: 13.5px !important;
                 font-weight: 800 !important;
@@ -1711,14 +1695,18 @@
                 text-overflow: clip !important;
                 line-height: 1.25;
             }
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-booking,
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-type {
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-line2 {
                 font-size: 10.5px !important;
                 color: var(--text-muted) !important;
                 margin-top: 2px;
                 white-space: nowrap !important;
                 overflow: visible !important;
                 text-overflow: clip !important;
+            }
+            /* (Latex HA) về cùng hàng với Booking */
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-line2 .gantt-po-type {
+                display: inline !important;
+                margin: 0 0 0 5px !important;
             }
 
             /* Con 2 (Đóng hàng) + Con 3 (ETD) — (v3.1) XẾP DỌC: nhãn nhỏ TRÊN, ngày DƯỚI.
@@ -7200,8 +7188,10 @@
                 rowDiv.innerHTML = `
                     <div class="col-span-2 border-r border-slate-200 pr-2 gantt-po-cell">
                         <div class="gantt-po-no font-bold text-slate-800 truncate" title="${item.poNo}">${item.poNo}</div>
-                        <div class="gantt-po-booking text-[9px] text-slate-400 truncate">Booking: ${item.bookingNo}</div>
-                        <div class="gantt-po-type text-[9px] text-slate-400 truncate">(${item.type || '—'})</div>
+                        <div class="gantt-po-line2 text-[9px] text-slate-400 truncate">
+                            <span class="gantt-po-booking">Booking: ${item.bookingNo}</span>
+                            <span class="gantt-po-type">(${item.type || '—'})</span>
+                        </div>
                     </div>
                     <div class="col-span-1 text-center border-r border-slate-200 text-slate-600 font-semibold">${formatDate(item.dateStuffing)}</div>
                     <div class="col-span-1 text-center border-r border-slate-200 text-blue-700 font-bold">${formatDate(item.etd)}</div>
