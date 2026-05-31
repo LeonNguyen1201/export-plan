@@ -1698,11 +1698,25 @@
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) { grid-area: timeline; }
 
             /* Con 1 — Thông tin PO / Booking / Loại : nguyên một dải đầu thẻ.
-               (v3.1) DỌC iPhone/iPad: "Loại" (Latex HA) lên TRÊN cùng. */
-            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-type {
-                order: -1 !important;
-                margin-top: 0 !important;
-                margin-bottom: 3px !important;
+               (v3.1) DỌC iPhone/iPad: PO trên cùng, rồi hàng [Booking · badge Loại] CÙNG MỘT HÀNG
+               (badge nằm bên phải Booking) — gọn, không đẩy thẻ cao thêm. */
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) {
+                display: grid !important;
+                grid-template-columns: 1fr auto !important;
+                grid-template-areas:
+                    "po      po"
+                    "booking type" !important;
+                column-gap: 8px !important;
+                row-gap: 2px !important;
+                align-items: center !important;
+            }
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-no      { grid-area: po; }
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-booking { grid-area: booking; }
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-type    {
+                grid-area: type;
+                order: 0 !important;
+                margin: 0 !important;
+                justify-self: end !important;
             }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(1) .gantt-po-no {
                 font-size: 13.5px !important;
