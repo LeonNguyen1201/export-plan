@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ExportPlan">
-    <title>Export Plan Tracker 2026 - AI & Gantt</title>
+    <title>Export Plan Tracker 2026 - AI &amp; Gantt (v3.1)</title>
     <!-- Tailwind CSS để tạo giao diện hiện đại -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome cho các icon sinh động -->
@@ -1698,24 +1698,28 @@
                 text-overflow: clip !important;
             }
 
-            /* Con 2 (Đóng hàng) + Con 3 (ETD) — cùng dòng, có nhãn nhỏ */
+            /* Con 2 (Đóng hàng) + Con 3 (ETD) — (v3.1) XẾP DỌC: nhãn nhỏ TRÊN, ngày DƯỚI.
+               Mỗi ô chỉ rộng bằng đúng chiều dài ngày → KHÔNG bao giờ bị cắt "2026";
+               cột ETD luôn bắt đầu tại 50% (1fr 1fr) → thẳng hàng dọc tuyệt đối giữa mọi lô. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2),
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(3) {
                 display: flex !important;
-                align-items: baseline !important;   /* (v3.1) căn baseline → nhãn ETD/Đóng hàng thẳng hàng */
-                gap: 5px !important;
-                font-size: 11.5px !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                justify-content: flex-start !important;
+                gap: 1px !important;
+                font-size: 12px !important;
                 font-weight: 700 !important;
                 white-space: nowrap !important;
                 align-self: start !important;
-                justify-content: flex-start !important;
-                min-width: 0 !important;     /* cho phép co trong cột 50% mà không tràn */
-                overflow: hidden !important;
+                min-width: 0 !important;
+                overflow: visible !important;   /* KHÔNG cắt chữ */
             }
-            /* Nhãn nhỏ (::before) không bị co mất chữ */
+            /* Nhãn nhỏ phía trên (::before) */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2)::before,
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(3)::before {
                 flex-shrink: 0 !important;
+                display: block !important;
             }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2)::before {
                 content: "Đóng hàng:";
@@ -4450,7 +4454,7 @@
                     <h1 class="logo-title no-transition">Export Plan Tracker</h1>
                     <span class="logo-sub no-transition">
                         <span class="logo-live-dot"></span>
-                        Logistics Control · 2026
+                        Logistics Control · 2026 · v3.1
                     </span>
                 </div>
             </a>
