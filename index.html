@@ -1640,13 +1640,16 @@
                iPhone layout (mặc định): timeline NẰM DƯỚI 2 ngày → 3 hàng (po · ngày · timeline). */
             #gantt-rows-container > .grid.grid-cols-12 {
                 display: grid !important;
-                grid-template-columns: auto 1fr !important;
+                /* (v3.1) 2 cột CỐ ĐỊNH 50/50 (thay cho auto 1fr) → cột "ETD" của MỌI lô luôn bắt đầu
+                   đúng tại 50% → cột ETD thẳng hàng dọc tuyệt đối, không còn lệch giữa các lô. */
+                grid-template-columns: 1fr 1fr !important;
                 grid-template-areas:
                     "po       po"
                     "stuff    etd"
                     "timeline timeline" !important;
-                column-gap: 14px !important;
+                column-gap: 10px !important;
                 row-gap: 7px !important;
+                align-items: start !important;
                 padding: 10px 4px !important;
                 /* KHÔNG còn card frame — chỉ có 1 đường mảnh phân cách giữa các lô */
                 border: none !important;
@@ -1703,8 +1706,16 @@
                 gap: 5px !important;
                 font-size: 11.5px !important;
                 font-weight: 700 !important;
-                white-space: nowrap;
+                white-space: nowrap !important;
                 align-self: start !important;
+                justify-content: flex-start !important;
+                min-width: 0 !important;     /* cho phép co trong cột 50% mà không tràn */
+                overflow: hidden !important;
+            }
+            /* Nhãn nhỏ (::before) không bị co mất chữ */
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2)::before,
+            #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(3)::before {
+                flex-shrink: 0 !important;
             }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2)::before {
                 content: "Đóng hàng:";
