@@ -14,20 +14,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome cho các icon sinh động -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js để vẽ biểu đồ thống kê trực quan -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- (v3.1) Preconnect tới các CDN/Firebase → bắt tay TLS sớm, giảm độ trễ kết nối -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <!-- Chart.js để vẽ biểu đồ thống kê trực quan (defer: không chặn render đầu trang) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SheetJS để xuất dữ liệu ra file Excel chuẩn -->
-    <!-- xlsx-js-style for styled Excel export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- xlsx-js-style for styled Excel export (defer: chỉ cần khi xuất Excel) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
     <!-- Firebase Compat SDK - không cần auth, không timing issue -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <!-- Mục 4: xuất PDF phần thống kê (jsPDF + AutoTable, không cần html2canvas nữa) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Mục 4: xuất PDF phần thống kê (defer: chỉ cần khi xuất PDF) -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- AutoTable: bảng PDF gọn gàng, tự xuống trang (redesign Export Chart PDF) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
@@ -1695,11 +1699,12 @@
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2),
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(3) {
                 display: flex !important;
-                align-items: center !important;
+                align-items: baseline !important;   /* (v3.1) căn baseline → nhãn ETD/Đóng hàng thẳng hàng */
                 gap: 5px !important;
                 font-size: 11.5px !important;
                 font-weight: 700 !important;
                 white-space: nowrap;
+                align-self: start !important;
             }
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(2)::before {
                 content: "Đóng hàng:";
@@ -1734,9 +1739,10 @@
             }
             /* Bar chính của timeline (MOBILE DỌC) — GIỮ NGUYÊN logic JS gốc:
                margin-left = vị trí ngày đóng hàng, width = (ETD − đóng hàng) theo trục thời gian chung.
-               KHÔNG ép bằng nhau, KHÔNG ép full-width → ngày đóng hàng & ETD đặt đúng vị trí thực. */
+               (v3.1) Sàn tối thiểu THEO % thay cho 60px → 2 lô cùng số ngày LUÔN dài bằng nhau. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 height: 22px !important;
+                min-width: 9% !important;
             }
             /* HIỆN vạch "hôm nay" trên mobile dọc — vị trí theo % trục thời gian chung. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
@@ -1778,10 +1784,11 @@
                 margin-top: 1px !important;
                 min-height: 30px !important;
             }
-            /* Bar GIỮ logic JS gốc (margin-left + width% theo trục thời gian chung). */
+            /* Bar GIỮ logic JS gốc (margin-left + width% theo trục thời gian chung).
+               (v3.1) Sàn tối thiểu theo % → 2 lô cùng số ngày dài bằng nhau. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) .h-5 {
                 height: 22px !important;
-                min-width: 60px !important;
+                min-width: 9% !important;
             }
             /* HIỆN vạch "hôm nay" — vị trí theo % trục thời gian chung trong cell. */
             #gantt-rows-container > .grid.grid-cols-12 > div:nth-child(4) > .absolute {
@@ -5765,14 +5772,22 @@
 
             showToast(`👤 Không gian dữ liệu: ${USER_PROFILES[userKey].label}`);
         }
-        function moveUserIndicator() {
+        function moveUserIndicator(_tries) {
             const wrap = document.querySelector('.user-switch');
             if (!wrap) return;
             const indicator = wrap.querySelector('.user-switch-indicator');
             const active = wrap.querySelector('button.active');
             if (!indicator || !active) return;
+            // (v3.1) Khi mới đăng nhập, header vừa hiện nên có thể CHƯA layout xong → offsetWidth = 0.
+            // Thử lại bằng requestAnimationFrame tới khi đo được kích thước thật (tối đa ~20 khung hình)
+            // để khối nền xanh luôn nổi đúng dưới nút công ty đang chọn.
+            const w = active.offsetWidth;
+            if (w === 0 && (_tries || 0) < 20) {
+                requestAnimationFrame(() => moveUserIndicator((_tries || 0) + 1));
+                return;
+            }
             indicator.style.left = active.offsetLeft + 'px';
-            indicator.style.width = active.offsetWidth + 'px';
+            indicator.style.width = w + 'px';
             indicator.classList.add('ready');
         }
         // (Tối ưu) Gộp các việc cần làm khi resize/orientation vào MỘT handler debounced
@@ -5790,15 +5805,20 @@
         window.addEventListener('orientationchange', _onUiResize, { passive: true });
         // (2) Khi xoay ngang/dọc hoặc đổi kích thước qua mốc 820px → vẽ lại đúng chế độ bảng/thẻ
         let _wasMobileView = window.matchMedia('(max-width: 820px)').matches;
+        // (v3.1 TỐI ƯU) GỘP 2 listener resize cùng gọi renderData (mốc 820px + đổi pageSize)
+        // làm MỘT → tránh render 2 lần liên tiếp khi xoay/đổi cỡ (trước đây gây giật trên mobile).
         let _resizeRenderTimer = null;
         window.addEventListener('resize', () => {
             clearTimeout(_resizeRenderTimer);
             _resizeRenderTimer = setTimeout(() => {
                 const nowMobile = window.matchMedia('(max-width: 820px)').matches;
-                if (nowMobile !== _wasMobileView) {
+                const newSize = (typeof getPlanPageSize === 'function') ? getPlanPageSize() : null;
+                const sizeChanged = (newSize !== null && typeof _lastPageSize !== 'undefined' && newSize !== _lastPageSize);
+                if (nowMobile !== _wasMobileView || sizeChanged) {
                     _wasMobileView = nowMobile;
-                    resetMobilePaging();
-                    renderData(_lastRenderedData.length ? _lastRenderedData : dbData);
+                    if (sizeChanged) { _lastPageSize = newSize; _planCurrentPage = 1; }
+                    else { try { resetMobilePaging(); } catch(e){} }
+                    renderData(_lastRenderedData && _lastRenderedData.length ? _lastRenderedData : dbData);
                 }
             }, 200);
         });
@@ -5959,6 +5979,11 @@
             if (fbDb) return;
             if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
             fbDb = firebase.firestore();
+            // (v3.1) Bật cache offline: lần mở sau hiện dữ liệu NGAY từ cache (không chờ mạng) →
+            // cảm giác kết nối Cloud nhanh hơn nhiều; vẫn tự đồng bộ realtime khi có mạng.
+            try {
+                fbDb.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+            } catch (e) { /* trình duyệt cũ/không hỗ trợ thì bỏ qua, vẫn chạy online bình thường */ }
         }
         function initAuth() {
             if (fbAuth) return fbAuth;
@@ -6236,6 +6261,8 @@
         }
         async function enterAppForUser(user) {
             _currentAuthUid = user.uid;
+            // (v3.1) Header vừa hiện sau đăng nhập → định vị lại khối nền nút công ty (tránh khối "chìm")
+            try { requestAnimationFrame(() => requestAnimationFrame(() => moveUserIndicator())); } catch(e){}
             if (_enteredUid === user.uid) return;   // đã vào rồi
             _enteredUid = user.uid;
             const room = accountRoomFor(activeUser);
@@ -6477,7 +6504,10 @@
                 const colRef = roomColRef(roomName);
                 let firstSnap = true;
 
-                unsubscribeFirestore = colRef.onSnapshot(snapshot => {
+                // (v3.1) includeMetadataChanges → nhận snapshot từ CACHE ngay lập tức (hiện data tức thì),
+                // rồi cập nhật lại khi server trả về. Người dùng thấy dữ liệu nhanh thay vì màn hình trống.
+                unsubscribeFirestore = colRef.onSnapshot({ includeMetadataChanges: true }, snapshot => {
+                    const fromCache = snapshot.metadata.fromCache;
                     const cloudRecords = [];
                     snapshot.forEach(d => cloudRecords.push({ id: d.id, ...d.data() }));
 
@@ -6503,7 +6533,7 @@
                     document.getElementById('cloud-status-dot').style.boxShadow = "0 0 0 4px rgba(16,185,129,0.18)";
                     document.getElementById('cloud-status-dot').style.animation = "";
                     // MỤC 3 · ONLINE → "Cloud Realtime:" + icon kết nối (thay cho mã), ẩn ô nhập mã
-                    document.getElementById('cloud-status-text').innerText = `Cloud Realtime:`;
+                    document.getElementById('cloud-status-text').innerText = fromCache ? `Đang đồng bộ…` : `Cloud Realtime:`;
                     const _linkBtn = document.getElementById('cloud-link-btn');
                     if (_linkBtn) { _linkBtn.classList.remove('hidden'); _linkBtn.title = `Đang kết nối phòng [${roomName}] — bấm để ngắt`; }
                     document.getElementById('cloud-room-input').classList.add('hidden');
@@ -7056,7 +7086,9 @@
                 }
             }, 180);
         }
-        window.addEventListener('resize', _onViewportChange);
+        // (v3.1 TỐI ƯU) Listener resize/orientation cho pageSize ĐÃ GỘP vào handler phía trên
+        // (mốc 820px + đổi pageSize chung 1 chỗ) → không đăng ký riêng nữa, tránh render kép.
+        // Giữ orientationchange cho pageSize vì xoay máy không phải lúc nào cũng bắn 'resize' kịp.
         window.addEventListener('orientationchange', _onViewportChange);
 
         // Bật hiển thị cột chat AI (popup)
@@ -7114,7 +7146,10 @@
                 // Bar position theo global timeline
                 const startOffset = (dateStuff - startDate) / (1000 * 60 * 60 * 24);
                 const leftPct  = Math.max(0, Math.min(98, (startOffset / totalDays) * 100));
-                const widthPct = Math.max(6, Math.min(100 - leftPct, (Math.max(1, duration) / totalDays) * 100));
+                // (v3.1) Độ rộng & sàn tối thiểu TÍNH THEO % (không dùng px) → 2 lô cùng số ngày
+                // LUÔN dài bằng nhau trên mọi kích cỡ màn (px lệ thuộc bề rộng cell nên gây lệch).
+                const rawWidthPct = (Math.max(1, duration) / totalDays) * 100;
+                const widthPct = Math.max(6, Math.min(100 - leftPct, rawWidthPct));
 
                 // Marker "hôm nay" theo global timeline
                 const todayOffset = (systemCurrentTime - startDate) / (1000 * 60 * 60 * 24);
@@ -8306,6 +8341,13 @@
 
         // Vẽ biểu đồ
         function updateCharts(filteredData) {
+            // (v3.1) Chart.js tải kiểu defer → nếu chưa sẵn sàng, thử lại khi đã tải xong
+            // (không chặn phần còn lại của app khởi động).
+            if (typeof Chart === 'undefined') {
+                clearTimeout(window._chartRetryTO);
+                window._chartRetryTO = setTimeout(() => { try { updateCharts(filteredData); } catch(e){} }, 200);
+                return;
+            }
             const chartData = filteredData || dbData;
             // TỶ TRỌNG SẢN PHẨM TYPE — theo dữ liệu đang lọc
             const typeCounts = {};
@@ -8676,7 +8718,17 @@
 
         // Xuất file Excel (Hỗ trợ Transit Port)
         
+        // (v3.1) XLSX tải kiểu defer → kiểm tra đã sẵn sàng chưa trước khi xuất/nhập Excel.
+        function _xlsxReady() {
+            if (typeof XLSX === 'undefined') {
+                try { showToast('⏳ Đang tải thư viện Excel, vui lòng thử lại sau 1–2 giây…', 'error'); } catch(e){}
+                return false;
+            }
+            return true;
+        }
+
         function exportToExcelWithData(dataRows, modeLabel) {
+            if (!_xlsxReady()) return;
             const totalPo = dataRows.length;
             const totalCont = dataRows.reduce((sum, item) => sum + parseInt(item.qtyCont || 0), 0);
             const totalCleared = dataRows.filter(item => item.tkhq === "Đã thông quan").length;
@@ -9961,6 +10013,7 @@ ${buildAIContext()}
 
         // Template do hệ thống tự thiết kế: 3 cột CONT | SEAL | VGM + vài dòng mẫu
         function downloadContTemplate() {
+            if (!_xlsxReady()) return;
             const rec = dbData.find(it => it.id === csImportTargetId);
             const aoa = [
                 ['CONT', 'SEAL', 'VGM'],
@@ -10032,6 +10085,7 @@ ${buildAIContext()}
         }
 
         async function importFromExcel(event) {
+            if (!_xlsxReady()) { event.target.value = ''; return; }
             const file = event.target.files[0];
             if (!file) return;
 
