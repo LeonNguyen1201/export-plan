@@ -8066,37 +8066,62 @@
         }
 
         // (v3.1) Nạp font Unicode hỗ trợ TIẾNG VIỆT CÓ DẤU cho jsPDF (mặc định helvetica không có dấu).
-        // Tải Roboto (Regular + Bold) từ CDN, chuyển base64, nhúng vào doc, cache lại cho lần sau.
+        // Tải TTF tĩnh từ CDN, kiểm tra hợp lệ, nhúng vào doc, cache cho lần sau.
         let _pdfFontCache = null;
         async function _ensurePdfVietFont(doc) {
-            const REG_URL  = 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-vietnamese-400-normal.woff';
-            const BOLD_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-vietnamese-700-normal.woff';
-            // Lưu ý: jsPDF cần TTF/OTF (không nhận woff). Dùng nguồn TTF thay thế:
-            const REG_TTF  = 'https://cdn.jsdelivr.net/gh/google/fonts@main/apache/roboto/static/Roboto-Regular.ttf';
-            const BOLD_TTF = 'https://cdn.jsdelivr.net/gh/google/fonts@main/apache/roboto/static/Roboto-Bold.ttf';
+            // Nhiều nguồn dự phòng — TTF tĩnh thật sự, có dấu tiếng Việt. Thử lần lượt tới khi được.
+            const SOURCES = [
+                { // Noto Sans (đầy đủ Latin Extended + tiếng Việt) — fontsource có .ttf tĩnh
+                    reg:  'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-ext-400-normal.ttf',
+                    bold: 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-ext-700-normal.ttf'
+                },
+                { // Roboto fontsource (.ttf tĩnh)
+                    reg:  'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-vietnamese-400-normal.ttf',
+                    bold: 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-vietnamese-700-normal.ttf'
+                },
+                { // DejaVu Sans (chắc chắn TTF, có tiếng Việt)
+                    reg:  'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf',
+                    bold: 'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf'
+                }
+            ];
+            const fetchTTF = async (url) => {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + url);
+                const buf = await res.arrayBuffer();
+                const bytes = new Uint8Array(buf);
+                // Kiểm tra chữ ký TTF/OTF hợp lệ: 0x00010000 (TTF) hoặc 'OTTO'/'true'/'ttcf'
+                const sig = (bytes[0]<<24)|(bytes[1]<<16)|(bytes[2]<<8)|bytes[3];
+                const okSig = (sig === 0x00010000) || (sig === 0x4F54544F) || (sig === 0x74727565) || (sig === 0x74746366);
+                if (!okSig || bytes.length < 5000) throw new Error('Không phải TTF hợp lệ: ' + url);
+                let bin = ''; const CH = 0x8000;
+                for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+                return btoa(bin);
+            };
             try {
                 if (!_pdfFontCache) {
-                    const toB64 = async (url) => {
-                        const buf = await (await fetch(url)).arrayBuffer();
-                        let bin = ''; const bytes = new Uint8Array(buf);
-                        const CH = 0x8000;
-                        for (let i = 0; i < bytes.length; i += CH) {
-                            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
-                        }
-                        return btoa(bin);
-                    };
-                    const [reg, bold] = await Promise.all([toB64(REG_TTF), toB64(BOLD_TTF)]);
-                    _pdfFontCache = { reg, bold };
+                    let lastErr = null;
+                    for (const src of SOURCES) {
+                        try {
+                            const [reg, bold] = await Promise.all([fetchTTF(src.reg), fetchTTF(src.bold)]);
+                            _pdfFontCache = { reg, bold };
+                            break;
+                        } catch (e) { lastErr = e; /* thử nguồn kế tiếp */ }
+                    }
+                    if (!_pdfFontCache) throw lastErr || new Error('Không tải được font');
                 }
-                doc.addFileToVFS('Roboto-Regular.ttf', _pdfFontCache.reg);
-                doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-                doc.addFileToVFS('Roboto-Bold.ttf', _pdfFontCache.bold);
-                doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
-                doc.setFont('Roboto', 'normal');
-                return true;   // nhúng thành công → dùng font có dấu
+                doc.addFileToVFS('VietFont-Regular.ttf', _pdfFontCache.reg);
+                doc.addFont('VietFont-Regular.ttf', 'VietFont', 'normal');
+                doc.addFileToVFS('VietFont-Bold.ttf', _pdfFontCache.bold);
+                doc.addFont('VietFont-Bold.ttf', 'VietFont', 'bold');
+                // Thử set + đo thử 1 chuỗi để chắc font dùng được (bắt lỗi metadata.Unicode.widths sớm)
+                doc.setFont('VietFont', 'normal');
+                doc.getTextWidth('Tiếng Việt');
+                return 'VietFont';   // tên font có dấu
             } catch (e) {
-                console.error('Nạp font tiếng Việt PDF lỗi:', e);
-                return false;  // thất bại (mạng?) → fallback helvetica không dấu
+                console.error('Nạp font tiếng Việt PDF lỗi, dùng helvetica (không dấu):', e);
+                _pdfFontCache = null;     // xóa cache hỏng để lần sau thử lại
+                try { doc.setFont('helvetica', 'normal'); } catch(_){}
+                return 'helvetica';       // fallback an toàn, KHÔNG làm vỡ PDF
             }
         }
 
@@ -8120,9 +8145,14 @@
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
-                // (v3.1) Nhúng font tiếng Việt có dấu; nếu lỗi mạng thì FT='helvetica' (fallback không dấu)
-                const _vietOK = await _ensurePdfVietFont(doc);
-                const FT = _vietOK ? 'Roboto' : 'helvetica';
+                // (v3.1) Nhúng font tiếng Việt có dấu; trả về tên font dùng được (fallback 'helvetica' nếu lỗi)
+                const FT = await _ensurePdfVietFont(doc);
+                // (v3.1) Font Unicode → giữ dấu; nếu fallback helvetica thì tự bỏ dấu để không vỡ chữ.
+                const VN = (s) => {
+                    const str = String(s==null?'':s);
+                    if (FT !== 'helvetica') return str;
+                    return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
+                };
                 const PW = doc.internal.pageSize.getWidth();   // 210
                 const PH = doc.internal.pageSize.getHeight();  // 297
                 const M  = 14;                                  // lề
@@ -8177,9 +8207,9 @@
                     const [yy, mm] = _fMonth.split('-');
                     _periodLabel = 'THANG ' + mm + '/' + yy;
                 } else if (_fFrom || _fTo) {
-                    _periodLabel = (_fFrom ? fmtDate(_fFrom) : '...') + ' ĐẾN ' + (_fTo ? fmtDate(_fTo) : '...');
+                    _periodLabel = (_fFrom ? fmtDate(_fFrom) : '...') + VN(' ĐẾN ') + (_fTo ? fmtDate(_fTo) : '...');
                 }
-                const _titleBase = 'BÁO CÁO THỐNG KÊ KẾ HOẠCH XUẤT HÀNG';
+                const _titleBase = VN('BÁO CÁO THỐNG KÊ KẾ HOẠCH XUẤT HÀNG');
                 const _titleFull = _periodLabel ? (_titleBase + ' ' + _periodLabel) : _titleBase;
 
                 doc.setFillColor(...C.navy);
@@ -8199,7 +8229,7 @@
                 doc.setFont(FT,'normal'); doc.setFontSize(9.5);
                 doc.setTextColor(200, 214, 235);
                 doc.text(company.toUpperCase() + '  ·  EXPORT PLAN TRACKER 2026', M, 20.5);
-                const printedAt = 'Xuất lúc: ' + fmtDT(systemCurrentTime);
+                const printedAt = VN('Xuất lúc: ') + fmtDT(systemCurrentTime);
                 doc.setFontSize(8.5);
                 doc.text(printedAt, PW - M, 20.5, { align: 'right' });
 
@@ -8226,7 +8256,7 @@
                     doc.text(k.value, x + cw/2, y + 9.5, { align: 'center' });
                     doc.setTextColor(...C.slate);
                     doc.setFont(FT,'normal'); doc.setFontSize(6.6);
-                    doc.text(k.label, x + cw/2, y + 15.5, { align: 'center' });
+                    doc.text(VN(k.label), x + cw/2, y + 15.5, { align: 'center' });
                 });
                 y += 28;
 
@@ -8236,7 +8266,7 @@
                     doc.rect(M, yy-4.6, 2.4, 6, 'F');
                     doc.setTextColor(...C.navy);
                     doc.setFont(FT,'bold'); doc.setFontSize(11);
-                    doc.text(t, M + 5, yy);
+                    doc.text(VN(t), M + 5, yy);
                     doc.setDrawColor(...C.line); doc.setLineWidth(0.3);
                     doc.line(M, yy+2.4, PW-M, yy+2.4);
                 };
@@ -8268,7 +8298,7 @@
                 const marketImg = grabChart(marketChartInstance);
 
                 // -- Tỷ trọng loại hàng (pie) + bảng chú giải --
-                sectionTitle('Tỷ trọng cont theo loại sản phẩm', y);
+                sectionTitle(VN('Tỷ trọng cont theo loại sản phẩm'), y);
                 y += 7;
                 const typeCounts = {};
                 data.forEach(i => { typeCounts[i.type] = (typeCounts[i.type]||0) + parseInt(i.qtyCont||0); });
@@ -8280,12 +8310,12 @@
                     drawChartFit(pieImg, M, y, pieBoxW);
                 } else {
                     doc.setTextColor(...C.slate2); doc.setFontSize(8);
-                    doc.text('(Không có dữ liệu biểu đồ)', M, y+10);
+                    doc.text(VN('(Không có dữ liệu biểu đồ)'), M, y+10);
                 }
                 doc.autoTable({
                     startY: y,
                     margin: { left: M + pieBoxW + 6, right: M },
-                    head: [['Loại hàng', 'Cont', 'Tỷ lệ']],
+                    head: [[VN('Loại hàng'), 'Cont', VN('Tỷ lệ')]],
                     body: typeRows.length ? typeRows : [['—','0','0%']],
                     theme: 'grid',
                     styles: { font:FT, fontSize: 8.5, cellPadding: 2, lineColor: C.line, lineWidth: 0.2, textColor: C.slate },
@@ -8297,12 +8327,12 @@
 
                 // -- (Part B · Mục 1) Tỷ trọng thị trường sản phẩm (Cảng đích × Loại hàng) --
                 if (y > PH - 70) { doc.addPage(); y = M + 6; }
-                sectionTitle('Tỷ trọng thị trường sản phẩm (Cảng đích × Loại hàng)', y);
+                sectionTitle(VN('Tỷ trọng thị trường sản phẩm (Cảng đích × Loại hàng)'), y);
                 y += 7;
                 // (v3.1) Font đã hỗ trợ tiếng Việt → GIỮ DẤU. Chỉ bỏ dấu khi phải fallback helvetica.
                 const _stripDiacritics = (s) => {
                     const str = String(s||'');
-                    if (FT === 'Roboto') return str;   // font Unicode → giữ nguyên dấu
+                    if (FT !== 'helvetica') return str;   // font Unicode → giữ nguyên dấu
                     return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
                 };
                 const marketCountsPDF = {};
@@ -8330,12 +8360,12 @@
                     drawChartFit(marketImg, M, y, mBoxW);
                 } else {
                     doc.setTextColor(...C.slate2); doc.setFontSize(8);
-                    doc.text('(Không có dữ liệu biểu đồ)', M, y+10);
+                    doc.text(VN('(Không có dữ liệu biểu đồ)'), M, y+10);
                 }
                 doc.autoTable({
                     startY: y,
                     margin: { left: M + mBoxW + 6, right: M },
-                    head: [['Cảng đích', 'Loại hàng', 'Cont', 'Tỷ lệ']],
+                    head: [[VN('Cảng đích'), VN('Loại hàng'), 'Cont', VN('Tỷ lệ')]],
                     body: marketRows.length ? marketRows : [['—','—','0','0%']],
                     theme: 'grid',
                     styles: { font:FT, fontSize: 8, cellPadding: 1.8, lineColor: C.line, lineWidth: 0.2, textColor: C.slate, overflow: 'linebreak' },
@@ -8350,12 +8380,12 @@
                 // header band nhỏ cho trang bảng
                 doc.setFillColor(...C.navy); doc.rect(0,0,PW,16,'F');
                 doc.setTextColor(...C.white); doc.setFont(FT,'bold'); doc.setFontSize(11);
-                doc.text('DANH SÁCH CHI TIẾT LÔ HÀNG', M, 10.5);
+                doc.text(VN('DANH SÁCH CHI TIẾT LÔ HÀNG'), M, 10.5);
                 doc.setFont(FT,'normal'); doc.setFontSize(8);
-                doc.text(totalLo + ' lô  ·  ' + totalCont + ' cont', PW-M, 10.5, {align:'right'});
+                doc.text(totalLo + VN(' lô  ·  ') + totalCont + ' cont', PW-M, 10.5, {align:'right'});
 
-                const statusMap = { 'Đã thông quan':'Đã TQ', 'Chưa thông quan':'Chưa TQ', 'Đang làm thủ tục':'Đang làm TT', 'Đã kiểm hóa':'Đã KH' };
-                const luongMap  = { '1':'Xanh', '2':'Vàng', '3':'Đỏ' };
+                const statusMap = { 'Đã thông quan':VN('Đã TQ'), 'Chưa thông quan':VN('Chưa TQ'), 'Đang làm thủ tục':VN('Đang làm TT'), 'Đã kiểm hóa':VN('Đã KH') };
+                const luongMap  = { '1':'Xanh', '2':VN('Vàng'), '3':VN('Đỏ') };
                 const stripVN = (s) => (s==null?'':String(s));
                 const detailRows = data.map((it, i) => ([
                     String(i+1),
@@ -8374,8 +8404,8 @@
                 doc.autoTable({
                     startY: 20,
                     margin: { left: 8, right: 8 },
-                    head: [['#','PO No.','Loại','Cont','Booking','Tàu / Voy','ETD','Cut-off','Sổ tàu','TT TK','Lượng']],
-                    body: detailRows.length ? detailRows : [['—','Không có dữ liệu','','','','','','','','','']],
+                    head: [['#','PO No.',VN('Loại'),'Cont','Booking',VN('Tàu / Voy'),'ETD','Cut-off',VN('Sổ tàu'),'TT TK',VN('Lượng')]],
+                    body: detailRows.length ? detailRows : [['—',VN('Không có dữ liệu'),'','','','','','','','','']],
                     theme: 'striped',
                     styles: { font:FT, fontSize: 7.2, cellPadding: 1.6, lineColor: C.line, lineWidth: 0.15, textColor: C.slate, overflow:'linebreak', valign:'middle' },
                     headStyles: { fillColor: C.navy, textColor: C.white, fontStyle:'bold', fontSize: 7.2, halign:'center' },
