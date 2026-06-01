@@ -8065,6 +8065,41 @@
             });
         }
 
+        // (v3.1) Nạp font Unicode hỗ trợ TIẾNG VIỆT CÓ DẤU cho jsPDF (mặc định helvetica không có dấu).
+        // Tải Roboto (Regular + Bold) từ CDN, chuyển base64, nhúng vào doc, cache lại cho lần sau.
+        let _pdfFontCache = null;
+        async function _ensurePdfVietFont(doc) {
+            const REG_URL  = 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-vietnamese-400-normal.woff';
+            const BOLD_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5.0.8/files/roboto-vietnamese-700-normal.woff';
+            // Lưu ý: jsPDF cần TTF/OTF (không nhận woff). Dùng nguồn TTF thay thế:
+            const REG_TTF  = 'https://cdn.jsdelivr.net/gh/google/fonts@main/apache/roboto/static/Roboto-Regular.ttf';
+            const BOLD_TTF = 'https://cdn.jsdelivr.net/gh/google/fonts@main/apache/roboto/static/Roboto-Bold.ttf';
+            try {
+                if (!_pdfFontCache) {
+                    const toB64 = async (url) => {
+                        const buf = await (await fetch(url)).arrayBuffer();
+                        let bin = ''; const bytes = new Uint8Array(buf);
+                        const CH = 0x8000;
+                        for (let i = 0; i < bytes.length; i += CH) {
+                            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+                        }
+                        return btoa(bin);
+                    };
+                    const [reg, bold] = await Promise.all([toB64(REG_TTF), toB64(BOLD_TTF)]);
+                    _pdfFontCache = { reg, bold };
+                }
+                doc.addFileToVFS('Roboto-Regular.ttf', _pdfFontCache.reg);
+                doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+                doc.addFileToVFS('Roboto-Bold.ttf', _pdfFontCache.bold);
+                doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+                doc.setFont('Roboto', 'normal');
+                return true;   // nhúng thành công → dùng font có dấu
+            } catch (e) {
+                console.error('Nạp font tiếng Việt PDF lỗi:', e);
+                return false;  // thất bại (mạng?) → fallback helvetica không dấu
+            }
+        }
+
         async function exportChartPDF() {
             if (!window.jspdf) {
                 showToast('⚠️ Thiếu thư viện xuất PDF (kiểm tra mạng)', 'error');
@@ -8085,6 +8120,9 @@
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4');
+                // (v3.1) Nhúng font tiếng Việt có dấu; nếu lỗi mạng thì FT='helvetica' (fallback không dấu)
+                const _vietOK = await _ensurePdfVietFont(doc);
+                const FT = _vietOK ? 'Roboto' : 'helvetica';
                 const PW = doc.internal.pageSize.getWidth();   // 210
                 const PH = doc.internal.pageSize.getHeight();  // 297
                 const M  = 14;                                  // lề
@@ -8139,9 +8177,9 @@
                     const [yy, mm] = _fMonth.split('-');
                     _periodLabel = 'THANG ' + mm + '/' + yy;
                 } else if (_fFrom || _fTo) {
-                    _periodLabel = (_fFrom ? fmtDate(_fFrom) : '...') + ' DEN ' + (_fTo ? fmtDate(_fTo) : '...');
+                    _periodLabel = (_fFrom ? fmtDate(_fFrom) : '...') + ' ĐẾN ' + (_fTo ? fmtDate(_fTo) : '...');
                 }
-                const _titleBase = 'BAO CAO THONG KE KE HOACH XUAT HANG';
+                const _titleBase = 'BÁO CÁO THỐNG KÊ KẾ HOẠCH XUẤT HÀNG';
                 const _titleFull = _periodLabel ? (_titleBase + ' ' + _periodLabel) : _titleBase;
 
                 doc.setFillColor(...C.navy);
@@ -8149,7 +8187,7 @@
                 doc.setFillColor(...C.blue);
                 doc.rect(0, 30, PW, 1.4, 'F');
                 doc.setTextColor(...C.white);
-                doc.setFont('helvetica','bold');
+                doc.setFont(FT,'bold');
                 // tự co cỡ chữ nếu tiêu đề dài để không tràn lề
                 let _tfs = 15;
                 doc.setFontSize(_tfs);
@@ -8158,21 +8196,21 @@
                     _tfs -= 0.5; doc.setFontSize(_tfs);
                 }
                 doc.text(_titleFull, M, 13);
-                doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+                doc.setFont(FT,'normal'); doc.setFontSize(9.5);
                 doc.setTextColor(200, 214, 235);
                 doc.text(company.toUpperCase() + '  ·  EXPORT PLAN TRACKER 2026', M, 20.5);
-                const printedAt = 'Xuat luc: ' + fmtDT(systemCurrentTime);
+                const printedAt = 'Xuất lúc: ' + fmtDT(systemCurrentTime);
                 doc.setFontSize(8.5);
                 doc.text(printedAt, PW - M, 20.5, { align: 'right' });
 
                 // ════ KPI CARDS ════
                 let y = 40;
                 const kpis = [
-                    { label: 'TONG LO HANG',   value: String(totalLo),   col: C.blue },
-                    { label: 'TONG CONTAINER', value: String(totalCont), col: C.navy },
-                    { label: 'DA VAO SO TAU',  value: entered + '/' + totalLo, col: C.green },
-                    { label: 'DA THONG QUAN',  value: String(cleared),   col: C.slate },
-                    { label: 'GAP <48H',       value: String(urgent),    col: C.red }
+                    { label: 'TỔNG LÔ HÀNG',   value: String(totalLo),   col: C.blue },
+                    { label: 'TỔNG CONTAINER', value: String(totalCont), col: C.navy },
+                    { label: 'ĐÃ VÀO SỔ TÀU',  value: entered + '/' + totalLo, col: C.green },
+                    { label: 'ĐÃ THÔNG QUAN',  value: String(cleared),   col: C.slate },
+                    { label: 'GẤP <48H',       value: String(urgent),    col: C.red }
                 ];
                 const gap = 4;
                 const cw = (PW - 2*M - gap*(kpis.length-1)) / kpis.length;
@@ -8184,10 +8222,10 @@
                     doc.setFillColor(...k.col);
                     doc.roundedRect(x, y, 1.8, 20, 0.9, 0.9, 'F');
                     doc.setTextColor(...k.col);
-                    doc.setFont('helvetica','bold'); doc.setFontSize(15);
+                    doc.setFont(FT,'bold'); doc.setFontSize(15);
                     doc.text(k.value, x + cw/2, y + 9.5, { align: 'center' });
                     doc.setTextColor(...C.slate);
-                    doc.setFont('helvetica','normal'); doc.setFontSize(6.6);
+                    doc.setFont(FT,'normal'); doc.setFontSize(6.6);
                     doc.text(k.label, x + cw/2, y + 15.5, { align: 'center' });
                 });
                 y += 28;
@@ -8197,7 +8235,7 @@
                     doc.setFillColor(...C.blueLt);
                     doc.rect(M, yy-4.6, 2.4, 6, 'F');
                     doc.setTextColor(...C.navy);
-                    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+                    doc.setFont(FT,'bold'); doc.setFontSize(11);
                     doc.text(t, M + 5, yy);
                     doc.setDrawColor(...C.line); doc.setLineWidth(0.3);
                     doc.line(M, yy+2.4, PW-M, yy+2.4);
@@ -8230,7 +8268,7 @@
                 const marketImg = grabChart(marketChartInstance);
 
                 // -- Tỷ trọng loại hàng (pie) + bảng chú giải --
-                sectionTitle('Ty trong cont theo loai san pham', y);
+                sectionTitle('Tỷ trọng cont theo loại sản phẩm', y);
                 y += 7;
                 const typeCounts = {};
                 data.forEach(i => { typeCounts[i.type] = (typeCounts[i.type]||0) + parseInt(i.qtyCont||0); });
@@ -8242,15 +8280,15 @@
                     drawChartFit(pieImg, M, y, pieBoxW);
                 } else {
                     doc.setTextColor(...C.slate2); doc.setFontSize(8);
-                    doc.text('(Khong co du lieu bieu do)', M, y+10);
+                    doc.text('(Không có dữ liệu biểu đồ)', M, y+10);
                 }
                 doc.autoTable({
                     startY: y,
                     margin: { left: M + pieBoxW + 6, right: M },
-                    head: [['Loai hang', 'Cont', 'Ty le']],
+                    head: [['Loại hàng', 'Cont', 'Tỷ lệ']],
                     body: typeRows.length ? typeRows : [['—','0','0%']],
                     theme: 'grid',
-                    styles: { font:'helvetica', fontSize: 8.5, cellPadding: 2, lineColor: C.line, lineWidth: 0.2, textColor: C.slate },
+                    styles: { font:FT, fontSize: 8.5, cellPadding: 2, lineColor: C.line, lineWidth: 0.2, textColor: C.slate },
                     headStyles: { fillColor: C.navy, textColor: C.white, fontStyle:'bold', fontSize: 8.5, halign:'center' },
                     columnStyles: { 1:{halign:'center'}, 2:{halign:'center'} },
                     alternateRowStyles: { fillColor: C.soft }
@@ -8259,9 +8297,14 @@
 
                 // -- (Part B · Mục 1) Tỷ trọng thị trường sản phẩm (Cảng đích × Loại hàng) --
                 if (y > PH - 70) { doc.addPage(); y = M + 6; }
-                sectionTitle('Ty trong thi truong san pham (Cang dich × Loai hang)', y);
+                sectionTitle('Tỷ trọng thị trường sản phẩm (Cảng đích × Loại hàng)', y);
                 y += 7;
-                const _stripDiacritics = (s) => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
+                // (v3.1) Font đã hỗ trợ tiếng Việt → GIỮ DẤU. Chỉ bỏ dấu khi phải fallback helvetica.
+                const _stripDiacritics = (s) => {
+                    const str = String(s||'');
+                    if (FT === 'Roboto') return str;   // font Unicode → giữ nguyên dấu
+                    return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
+                };
                 const marketCountsPDF = {};
                 data.forEach(it => {
                     const type = (it.type || 'N/A').trim();
@@ -8287,15 +8330,15 @@
                     drawChartFit(marketImg, M, y, mBoxW);
                 } else {
                     doc.setTextColor(...C.slate2); doc.setFontSize(8);
-                    doc.text('(Khong co du lieu bieu do)', M, y+10);
+                    doc.text('(Không có dữ liệu biểu đồ)', M, y+10);
                 }
                 doc.autoTable({
                     startY: y,
                     margin: { left: M + mBoxW + 6, right: M },
-                    head: [['Cang dich', 'Loai hang', 'Cont', 'Ty le']],
+                    head: [['Cảng đích', 'Loại hàng', 'Cont', 'Tỷ lệ']],
                     body: marketRows.length ? marketRows : [['—','—','0','0%']],
                     theme: 'grid',
-                    styles: { font:'helvetica', fontSize: 8, cellPadding: 1.8, lineColor: C.line, lineWidth: 0.2, textColor: C.slate, overflow: 'linebreak' },
+                    styles: { font:FT, fontSize: 8, cellPadding: 1.8, lineColor: C.line, lineWidth: 0.2, textColor: C.slate, overflow: 'linebreak' },
                     headStyles: { fillColor: C.navy, textColor: C.white, fontStyle:'bold', fontSize: 8, halign:'center' },
                     columnStyles: { 2:{halign:'center'}, 3:{halign:'center'} },
                     alternateRowStyles: { fillColor: C.soft }
@@ -8306,13 +8349,13 @@
                 doc.addPage(); 
                 // header band nhỏ cho trang bảng
                 doc.setFillColor(...C.navy); doc.rect(0,0,PW,16,'F');
-                doc.setTextColor(...C.white); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-                doc.text('DANH SACH CHI TIET LO HANG', M, 10.5);
-                doc.setFont('helvetica','normal'); doc.setFontSize(8);
-                doc.text(totalLo + ' lo  ·  ' + totalCont + ' cont', PW-M, 10.5, {align:'right'});
+                doc.setTextColor(...C.white); doc.setFont(FT,'bold'); doc.setFontSize(11);
+                doc.text('DANH SÁCH CHI TIẾT LÔ HÀNG', M, 10.5);
+                doc.setFont(FT,'normal'); doc.setFontSize(8);
+                doc.text(totalLo + ' lô  ·  ' + totalCont + ' cont', PW-M, 10.5, {align:'right'});
 
-                const statusMap = { 'Đã thông quan':'Da TQ', 'Chưa thông quan':'Chua TQ', 'Đang làm thủ tục':'Dang lam TT', 'Đã kiểm hóa':'Da KH' };
-                const luongMap  = { '1':'Xanh', '2':'Vang', '3':'Do' };
+                const statusMap = { 'Đã thông quan':'Đã TQ', 'Chưa thông quan':'Chưa TQ', 'Đang làm thủ tục':'Đang làm TT', 'Đã kiểm hóa':'Đã KH' };
+                const luongMap  = { '1':'Xanh', '2':'Vàng', '3':'Đỏ' };
                 const stripVN = (s) => (s==null?'':String(s));
                 const detailRows = data.map((it, i) => ([
                     String(i+1),
@@ -8323,18 +8366,18 @@
                     stripVN(it.vesselVoy),
                     fmtDate(it.etd),
                     fmtDT(it.cutOff),
-                    it.enteredVessel ? 'Roi' : 'Chua',
-                    statusMap[it.tkhq] || stripVN(it.tkhq),
-                    luongMap[it.phanLuong] || '—'
+                    it.enteredVessel ? _stripDiacritics('Rồi') : _stripDiacritics('Chưa'),
+                    _stripDiacritics(statusMap[it.tkhq] || it.tkhq),
+                    _stripDiacritics(luongMap[it.phanLuong] || '—')
                 ]));
 
                 doc.autoTable({
                     startY: 20,
                     margin: { left: 8, right: 8 },
-                    head: [['#','PO No.','Loai','Cont','Booking','Tau / Voy','ETD','Cut-off','So tau','TT TK','Luong']],
-                    body: detailRows.length ? detailRows : [['—','Khong co du lieu','','','','','','','','','']],
+                    head: [['#','PO No.','Loại','Cont','Booking','Tàu / Voy','ETD','Cut-off','Sổ tàu','TT TK','Lượng']],
+                    body: detailRows.length ? detailRows : [['—','Không có dữ liệu','','','','','','','','','']],
                     theme: 'striped',
-                    styles: { font:'helvetica', fontSize: 7.2, cellPadding: 1.6, lineColor: C.line, lineWidth: 0.15, textColor: C.slate, overflow:'linebreak', valign:'middle' },
+                    styles: { font:FT, fontSize: 7.2, cellPadding: 1.6, lineColor: C.line, lineWidth: 0.15, textColor: C.slate, overflow:'linebreak', valign:'middle' },
                     headStyles: { fillColor: C.navy, textColor: C.white, fontStyle:'bold', fontSize: 7.2, halign:'center' },
                     alternateRowStyles: { fillColor: C.soft },
                     columnStyles: {
@@ -8368,7 +8411,7 @@
                     doc.setPage(p);
                     doc.setDrawColor(...C.line); doc.setLineWidth(0.3);
                     doc.line(M, PH-12, PW-M, PH-12);
-                    doc.setTextColor(...C.slate2); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                    doc.setTextColor(...C.slate2); doc.setFont(FT,'normal'); doc.setFontSize(7.5);
                     doc.text('Export Plan Tracker 2026  ·  ' + company, M, PH-7.5);
                     doc.text('Trang ' + p + '/' + pageCount, PW-M, PH-7.5, { align:'right' });
                 }
