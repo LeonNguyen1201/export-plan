@@ -6251,13 +6251,47 @@
             }
         }
 
+        // (v3.1) Phát hiện iOS/iPadOS/Safari — nơi popup + sessionStorage hay bị chặn
+        // ("Unable to save initial state"). iPadOS mới giả UA thành macOS nên phải nhận thêm
+        // qua maxTouchPoints + 'Macintosh' + touch. Dùng REDIRECT cho tất cả các máy này.
+        function _isIOSorSafari() {
+            const ua = navigator.userAgent || '';
+            const plat = navigator.platform || '';
+            const touch = (navigator.maxTouchPoints || 0) > 1;
+            // iPhone/iPod/iPad khai báo thẳng
+            const iOSDirect = /iPad|iPhone|iPod/.test(ua);
+            // iPadOS giả danh macOS: platform 'MacIntel' hoặc UA 'Macintosh' NHƯNG có cảm ứng
+            const iPadAsMac = touch && (plat === 'MacIntel' || /Macintosh/.test(ua));
+            const iOS = iOSDirect || iPadAsMac;
+            const safari = /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(ua);
+            const standalone = (window.navigator.standalone === true) ||
+                               (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+            return iOS || (safari && touch) || standalone || safari;
+        }
+
         async function agGoogle() {
             agHideError();
             initAuth();
+            const provider = new firebase.auth.GoogleAuthProvider();
+            // (v3.1) iOS/Safari/PWA: dùng REDIRECT (ổn định, không cần popup/sessionStorage).
+            // Trình duyệt khác (Chrome desktop…): dùng popup cho nhanh, lỗi thì fallback redirect.
+            if (_isIOSorSafari()) {
+                try {
+                    await fbAuth.signInWithRedirect(provider);   // chuyển trang sang Google rồi quay lại
+                } catch (err) {
+                    agShowError(_agMapError(err));
+                }
+                return;
+            }
             try {
-                const provider = new firebase.auth.GoogleAuthProvider();
                 await fbAuth.signInWithPopup(provider);
             } catch (err) {
+                // Popup bị chặn / lỗi sessionStorage → thử redirect
+                const c = (err && err.code) || '';
+                if (c === 'auth/popup-blocked' || c === 'auth/popup-closed-by-user' ||
+                    c === 'auth/cancelled-popup-request' || /sessionStorage|initial state/i.test(err && err.message || '')) {
+                    try { await fbAuth.signInWithRedirect(provider); return; } catch(e2){ agShowError(_agMapError(e2)); return; }
+                }
                 agShowError(_agMapError(err));
             }
         }
@@ -6339,6 +6373,16 @@
         // Cổng xác thực: theo dõi trạng thái đăng nhập
         function startAuthGate() {
             initAuth();
+            // (v3.1) Bắt kết quả Google Sign-In sau khi REDIRECT quay về (iOS/Safari).
+            // Nếu lỗi sessionStorage thì báo gọn, không làm treo cổng đăng nhập.
+            try {
+                fbAuth.getRedirectResult().catch(err => {
+                    const c = (err && err.code) || '';
+                    if (c && c !== 'auth/no-auth-event') {
+                        try { agShowError(_agMapError(err)); } catch(e){}
+                    }
+                });
+            } catch(e){}
             fbAuth.onAuthStateChanged(async (user) => {
                 if (user) {
                     // (v3.1) Phiên được Firebase tự khôi phục (mở lại app sau khi đóng): nếu mốc hoạt động
