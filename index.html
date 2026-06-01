@@ -12,28 +12,56 @@
     <title>Export Plan Tracker 2026 - AI &amp; Gantt (v3.1)</title>
     <!-- Tailwind CSS để tạo giao diện hiện đại -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome cho các icon sinh động -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- (v3.1) Preconnect tới các CDN/Firebase → bắt tay TLS sớm, giảm độ trễ kết nối -->
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <!-- FontAwesome cho các icon sinh động — (v3.1) tải BẤT ĐỒNG BỘ để không chặn first paint -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <!-- Chart.js để vẽ biểu đồ thống kê trực quan (defer: không chặn render đầu trang) -->
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SheetJS để xuất dữ liệu ra file Excel chuẩn -->
     <!-- xlsx-js-style for styled Excel export (defer: chỉ cần khi xuất Excel) -->
     <script defer src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
-    <!-- Firebase Compat SDK - không cần auth, không timing issue -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <!-- (v3.1) Firebase Compat SDK — defer để tải SONG SONG, không chặn parse HTML.
+         App khởi động trong window.onload nên 3 file này chắc chắn sẵn sàng trước khi dùng. -->
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <!-- Mục 4: xuất PDF phần thống kê (defer: chỉ cần khi xuất PDF) -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- AutoTable: bảng PDF gọn gàng, tự xuống trang (redesign Export Chart PDF) -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
+        /* (v3.1 · TỐI ƯU) content-visibility: bỏ qua render khối NẶNG ngoài màn hình tới khi cuộn tới.
+           CHỈ áp dụng cho container Gantt (danh sách dài) — KHÔNG áp cho canvas biểu đồ
+           (canvas cần đo kích thước thật, nếu bị skip sẽ vẽ ra 0). */
+        #gantt-rows-container {
+            content-visibility: auto;
+            contain-intrinsic-size: auto 500px;
+        }
+
+        /* (v3.1 · TỐI ƯU MƯỢT) backdrop-filter (blur kính mờ) rất tốn GPU khi CUỘN, nhất là iOS.
+           Khi đang cuộn, tạm TẮT blur để cuộn mượt; dừng cuộn ~150ms thì bật lại → nhìn vẫn đẹp.
+           Chỉ áp dụng trên màn cảm ứng/nhỏ (≤1279px). Desktop giữ nguyên blur mọi lúc. */
+        @media (max-width: 1279px) {
+            body.is-scrolling .app-header,
+            body.is-scrolling #bottom-nav,
+            body.is-scrolling .kpi-card,
+            body.is-scrolling [style*="backdrop-filter"] {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+        }
+        /* Tôn trọng "giảm chuyển động": tắt hẳn các animation lặp vô hạn để đỡ ngốn pin/CPU */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+        }
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
 
         /* ══════════════════════════════════════════
@@ -10831,8 +10859,9 @@ ${buildAIContext()}
             _tooltipPinned = false;
         }
 
-        // Tải trang lần đầu
-        window.onload = async function() {
+        // Tải trang lần đầu (v3.1 · TỐI ƯU): chạy sớm khi DOM sẵn sàng thay vì đợi window.onload
+        // (onload đợi cả ảnh/CSS phụ → chậm). Đợi 'firebase' sẵn sàng (script defer) rồi mới khởi động.
+        async function _bootApp() {
             // Init dark mode from saved preference
             const savedDark = localStorage.getItem('ep_dark_mode');
             if (savedDark === '1') {
@@ -10879,7 +10908,43 @@ ${buildAIContext()}
             });
             
             // API key hardcoded
-        };
+        }
+
+        // Bộ khởi động: đợi DOM + thư viện firebase (defer) sẵn sàng rồi gọi _bootApp MỘT lần
+        (function _launchWhenReady() {
+            let _booted = false;
+            function tryBoot() {
+                if (_booted) return;
+                if (typeof firebase === 'undefined') {   // firebase defer chưa tải xong → chờ thêm
+                    return setTimeout(tryBoot, 30);
+                }
+                _booted = true;
+                _bootApp();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', tryBoot);
+            } else {
+                tryBoot();
+            }
+            // Lưới an toàn: dù sao cũng boot khi window load (phòng trường hợp hiếm)
+            window.addEventListener('load', tryBoot);
+        })();
+
+        // (v3.1 · TỐI ƯU MƯỢT) Gắn class 'is-scrolling' khi đang cuộn → CSS tạm tắt blur kính mờ
+        // cho cuộn mượt trên mobile/iOS; dừng cuộn 150ms thì bỏ class (bật lại blur).
+        (function _initScrollPerf() {
+            let _scrollTO = null;
+            const onScroll = () => {
+                if (!document.body.classList.contains('is-scrolling')) {
+                    document.body.classList.add('is-scrolling');
+                }
+                clearTimeout(_scrollTO);
+                _scrollTO = setTimeout(() => document.body.classList.remove('is-scrolling'), 150);
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            // Bắt cả cuộn trong vùng nội dung có thanh cuộn riêng (Gantt, bảng)
+            document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+        })();
 
         // ════ AUTO-HIDE HEADER + BOTTOM NAV khi cuộn — CHỈ iPhone + iPad (≤1279px) ════
         (function initAutoHideHeader() {
