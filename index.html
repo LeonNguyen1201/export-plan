@@ -6031,11 +6031,9 @@
             if (fbDb) return;
             if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
             fbDb = firebase.firestore();
-            // (v3.1) Bật cache offline: lần mở sau hiện dữ liệu NGAY từ cache (không chờ mạng) →
-            // cảm giác kết nối Cloud nhanh hơn nhiều; vẫn tự đồng bộ realtime khi có mạng.
-            try {
-                fbDb.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-            } catch (e) { /* trình duyệt cũ/không hỗ trợ thì bỏ qua, vẫn chạy online bình thường */ }
+            // (v3.1 · FIX) ĐÃ GỠ enablePersistence: trên iOS Safari/WebKit nó hay gây lỗi
+            // "The client has already been terminated" + dữ liệu về 0. Firestore vẫn có
+            // cache trong-phiên (in-memory) mặc định nên tốc độ vẫn ổn, ổn định hơn nhiều.
         }
         function initAuth() {
             if (fbAuth) return fbAuth;
@@ -6589,10 +6587,8 @@
                 const colRef = roomColRef(roomName);
                 let firstSnap = true;
 
-                // (v3.1) includeMetadataChanges → nhận snapshot từ CACHE ngay lập tức (hiện data tức thì),
-                // rồi cập nhật lại khi server trả về. Người dùng thấy dữ liệu nhanh thay vì màn hình trống.
-                unsubscribeFirestore = colRef.onSnapshot({ includeMetadataChanges: true }, snapshot => {
-                    const fromCache = snapshot.metadata.fromCache;
+                // (v3.1 · FIX) onSnapshot thường cho ỔN ĐỊNH (đã gỡ persistence offline gây lỗi trên iOS).
+                unsubscribeFirestore = colRef.onSnapshot(snapshot => {
                     const cloudRecords = [];
                     snapshot.forEach(d => cloudRecords.push({ id: d.id, ...d.data() }));
 
@@ -6618,7 +6614,7 @@
                     document.getElementById('cloud-status-dot').style.boxShadow = "0 0 0 4px rgba(16,185,129,0.18)";
                     document.getElementById('cloud-status-dot').style.animation = "";
                     // MỤC 3 · ONLINE → "Cloud Realtime:" + icon kết nối (thay cho mã), ẩn ô nhập mã
-                    document.getElementById('cloud-status-text').innerText = fromCache ? `Đang đồng bộ…` : `Cloud Realtime:`;
+                    document.getElementById('cloud-status-text').innerText = `Cloud Realtime:`;
                     const _linkBtn = document.getElementById('cloud-link-btn');
                     if (_linkBtn) { _linkBtn.classList.remove('hidden'); _linkBtn.title = `Đang kết nối phòng [${roomName}] — bấm để ngắt`; }
                     document.getElementById('cloud-room-input').classList.add('hidden');
@@ -8085,7 +8081,13 @@
                 }
             ];
             const fetchTTF = async (url) => {
-                const res = await fetch(url);
+                // (v3.1) Timeout 4s: mạng yếu/4G chặn thì bỏ qua font nhanh, xuất PDF không dấu ngay
+                const ctrl = new AbortController();
+                const to = setTimeout(() => ctrl.abort(), 4000);
+                let res;
+                try {
+                    res = await fetch(url, { signal: ctrl.signal });
+                } finally { clearTimeout(to); }
                 if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + url);
                 const buf = await res.arrayBuffer();
                 const bytes = new Uint8Array(buf);
